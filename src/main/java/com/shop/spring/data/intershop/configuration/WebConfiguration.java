@@ -22,9 +22,9 @@ public class WebConfiguration implements WebMvcConfigurer {
         registry.addResourceHandler("/static/**")
                 .addResourceLocations("classpath:/static/");
 
-        // Обслуживание загруженных изображений из внешней директории
+        // Обслуживание статических ресурсов из /images/
         registry.addResourceHandler("/images/**")
-                .addResourceLocations("file:uploads/images/");
+                .addResourceLocations("classpath:/static/images/", "file:uploads/images/");
     }
 
     @Bean

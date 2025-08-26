@@ -27,4 +27,10 @@ public class Order {
     public void setItems(List<Item> items) {
         this.items = items;
     }
+
+    public double totalSum() {
+        return items.stream()
+                .mapToDouble(item -> item.getPrice() * item.getCount())
+                .sum();
+    }
 }

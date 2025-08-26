@@ -8,9 +8,13 @@ import com.shop.spring.data.intershop.model.enums.SortType;
 import com.shop.spring.data.intershop.service.ShopService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
+
 
 @Controller
 public class ShopController {
@@ -52,7 +56,7 @@ public class ShopController {
             @PathVariable String id,
             @RequestParam String action) {
 
-        ActionType actionType = ActionType.valueOf(action);
+        ActionType actionType = ActionType.valueOf(action.toUpperCase());
         shopService.updateMainItemQuantity(id, actionType);
 
         return "redirect:/main/items";
@@ -60,8 +64,7 @@ public class ShopController {
 
     @GetMapping("/cart/items")
     public String getCartItems(Model model) {
-        List<Item> items = shopService.getCartItems();
-        model.addAttribute("items", items);
+        model.addAttribute("items", shopService.getCartItems());
         model.addAttribute("total", shopService.getCartTotal());
         model.addAttribute("empty", shopService.isCartEmpty());
 
@@ -73,7 +76,7 @@ public class ShopController {
             @PathVariable String id,
             @RequestParam String action) {
 
-        ActionType actionType = ActionType.valueOf(action);
+        ActionType actionType = ActionType.valueOf(action.toUpperCase());
         shopService.updateCartItemQuantity(id, actionType);
 
         return "redirect:/cart/items";
@@ -81,9 +84,7 @@ public class ShopController {
 
     @GetMapping("/items/{id}")
     public String getItem(@PathVariable String id, Model model) {
-        Item item = shopService.getItem(id);
-        model.addAttribute("item", item);
-
+        model.addAttribute("item", shopService.getItem(id));
         return "item";
     }
 
@@ -92,7 +93,7 @@ public class ShopController {
             @PathVariable String id,
             @RequestParam String action) {
 
-        ActionType actionType = ActionType.valueOf(action);
+        ActionType actionType = ActionType.valueOf(action.toUpperCase());
         shopService.updateItemQuantity(id, actionType);
 
         return "redirect:/items/" + id;
@@ -111,8 +112,7 @@ public class ShopController {
 
     @GetMapping("/orders")
     public String getOrders(Model model) {
-        List<Order> orderList = shopService.getOrders();
-        model.addAttribute("orders", orderList);
+        model.addAttribute("orders", shopService.getOrders());
 
         return "orders";
     }
