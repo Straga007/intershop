@@ -1,67 +1,46 @@
 package com.shop.spring.data.intershop.model;
 
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.Objects;
+
+@Setter
+@Getter
+@Entity
+@Table(name = "items")
 public class Item {
-    private String id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     private String title;
     private String description;
     private String image;
     private double price;
     private int count;
 
-    public Item(String id, String title, String description, String imgPath, int count, double price) {
-        this.id = id;
+    public Item() {}
+
+    public Item(String title, String description, String image, double price, int count) {
         this.title = title;
         this.description = description;
-        this.image = imgPath;
-        this.count = count;
-        this.price = price;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getImage() {
-        return image;
-    }
-
-    public void setImage(String image) {
         this.image = image;
-    }
-
-    public double getPrice() {
-        return price;
-    }
-
-    public void setPrice(double price) {
         this.price = price;
-    }
-
-    public int getCount() {
-        return count;
-    }
-
-    public void setCount(int count) {
         this.count = count;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Item item = (Item) o;
+        return Objects.equals(id, item.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }

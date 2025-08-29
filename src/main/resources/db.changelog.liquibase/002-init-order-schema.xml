@@ -23,7 +23,7 @@
             </not>
         </preConditions>
         <createTable tableName="orders">
-            <column name="id" type="bigint">
+            <column name="id" type="varchar(36)">
                 <constraints primaryKey="true"/>
             </column>
             <column name="order_date" type="timestamp">
@@ -42,7 +42,10 @@
             </not>
         </preConditions>
         <createTable tableName="order_items">
-            <column name="order_id" type="bigint">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="order_id" type="varchar(36)">
                 <constraints nullable="false"/>
             </column>
             <column name="item_id" type="bigint">

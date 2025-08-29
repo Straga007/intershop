@@ -1,61 +1,44 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-
 <head>
-    <title>Корзина товаров</title>
+    <meta charset="UTF-8">
+    <title>Корзина</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
 </head>
-
 <body>
-<a href="/orders" style="float:right;">
-    <b>ЗАКАЗЫ &cudarrr;</b>
-</a>
-<a href="/main/items" style="float:right;">
-    <b>ГЛАВНАЯ &cudarrr;</b>
-</a>
-<table style="width:70%;margin-left:auto;margin-right:auto;">
-    <tr th:each="item : ${items}">
-        <td>
-            <table>
-                <tr>
-                    <td>
-                        <img width="300" height="300" th:src="${'http://localhost:8080/'+item.getImage()}">
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <b th:text="${item.getTitle()}"></b>
-                    </td>
-                    <td>
-                        <b th:text="${item.getPrice()}+' руб.'"></b>
-                    </td>
-                </tr>
-                <tr><td th:text="${item.getDescription()}"></td></tr>
-                <tr>
-                    <td>
-                        <form th:action="${'/cart/items/'+item.getId()}" method="post">
-                            <button name="action" value="minus">-</button>
-                            <span th:text="${item.getCount()}"></span>
-                            <button name="action" value="plus">+</button>
-                            <button name="action" value="delete" style="float:right;">&cross;</button>
-                        </form>
-                    </td>
-                </tr>
-            </table>
-        </td>
-    </tr>
-    <tr>
-        <td style="text-align:right">
-            <b th:text="'Итого: '+${total}+' руб.'"></b>
-        </td>
-    </tr>
-    <tr>
-        <td style="text-align:right">
-            <form action="/buy" method="post" th:if="${!empty}">
-                <button>Купить</button>
+<div class="container">
+    <h1>Корзина</h1>
+    <div th:if="${empty}">
+        <p>Корзина пуста</p>
+        <a th:href="@{/main/items}">Продолжить покупки</a>
+    </div>
+    <div th:unless="${empty}">
+        <div th:each="item : ${items}" class="item">
+            <img width="300" height="300" th:src="${baseUrl +'/'+ item.getImage()}">
+            <h3 th:text="${item.getTitle()}">Название товара</h3>
+            <p th:text="${item.getDescription()}">Описание товара</p>
+            <p>Цена: <span th:text="${item.getPrice()}">0</span> руб.</p>
+            <p>Количество: <span th:text="${item.getCount()}">0</span></p>
+            <p>Сумма: <span th:text="${item.getPrice() * item.getCount()}">0</span> руб.</p>
+            <form th:action="@{'/cart/items/' + ${item.getId()}}" method="post">
+                <input type="hidden" name="action" value="MINUS">
+                <button type="submit">-</button>
             </form>
-        </td>
-    </tr>
-</table>
+            <form th:action="@{'/cart/items/' + ${item.getId()}}" method="post">
+                <input type="hidden" name="action" value="PLUS">
+                <button type="submit">+</button>
+            </form>
+            <form th:action="@{'/cart/items/' + ${item.getId()}}" method="post">
+                <input type="hidden" name="action" value="DELETE">
+                <button type="submit">Удалить</button>
+            </form>
+        </div>
+        <p>Общая сумма: <span th:text="${total}">0</span> руб.</p>
+        <form th:action="@{/buy}" method="post">
+            <button type="submit">Оформить заказ</button>
+        </form>
+        <a th:href="@{/main/items}">Продолжить покупки</a>
+    </div>
+</div>
 </body>
-
 </html>

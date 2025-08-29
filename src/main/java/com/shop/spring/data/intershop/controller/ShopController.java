@@ -1,11 +1,11 @@
 package com.shop.spring.data.intershop.controller;
 
-import com.shop.spring.data.intershop.model.Item;
-import com.shop.spring.data.intershop.model.Order;
 import com.shop.spring.data.intershop.model.Paging;
 import com.shop.spring.data.intershop.model.enums.ActionType;
 import com.shop.spring.data.intershop.model.enums.SortType;
 import com.shop.spring.data.intershop.service.ShopService;
+import com.shop.spring.data.intershop.view.dto.ItemDto;
+import com.shop.spring.data.intershop.view.dto.OrderDto;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import jakarta.servlet.http.HttpSession;
 import java.util.List;
-
 
 @Controller
 public class ShopController {
@@ -22,6 +22,11 @@ public class ShopController {
 
     public ShopController(ShopService shopService) {
         this.shopService = shopService;
+    }
+
+    // get sessionId
+    private String getSessionId(HttpSession session) {
+        return session.getId();
     }
 
     @GetMapping("/")
@@ -35,13 +40,14 @@ public class ShopController {
             @RequestParam(defaultValue = "NO") String sort,
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(defaultValue = "1") int pageNumber,
-            Model model) {
+            Model model,
+            HttpSession session) {
 
         model.addAttribute("search", search);
         model.addAttribute("sort", sort);
 
         SortType sortType = SortType.valueOf(sort);
-        List<List<Item>> items = shopService.getMainItems(search, sortType, pageSize, pageNumber);
+        List<List<ItemDto>> items = shopService.getMainItems(search, sortType, pageSize, pageNumber);
         model.addAttribute("items", items);
 
         boolean hasNext = !items.isEmpty() && items.getFirst().size() == pageSize;
@@ -54,19 +60,21 @@ public class ShopController {
     @PostMapping("/main/items/{id}")
     public String updateMainItemQuantity(
             @PathVariable String id,
-            @RequestParam String action) {
+            @RequestParam String action,
+            HttpSession session) {
 
         ActionType actionType = ActionType.valueOf(action.toUpperCase());
-        shopService.updateMainItemQuantity(id, actionType);
+        shopService.updateMainItemQuantity(getSessionId(session), id, actionType);
 
         return "redirect:/main/items";
     }
 
     @GetMapping("/cart/items")
-    public String getCartItems(Model model) {
-        model.addAttribute("items", shopService.getCartItems());
-        model.addAttribute("total", shopService.getCartTotal());
-        model.addAttribute("empty", shopService.isCartEmpty());
+    public String getCartItems(Model model, HttpSession session) {
+        String sessionId = getSessionId(session);
+        model.addAttribute("items", shopService.getCartItems(sessionId));
+        model.addAttribute("total", shopService.getCartTotal(sessionId));
+        model.addAttribute("empty", shopService.isCartEmpty(sessionId));
 
         return "cart";
     }
@@ -74,16 +82,17 @@ public class ShopController {
     @PostMapping("/cart/items/{id}")
     public String updateCartItemQuantity(
             @PathVariable String id,
-            @RequestParam String action) {
+            @RequestParam String action,
+            HttpSession session) {
 
         ActionType actionType = ActionType.valueOf(action.toUpperCase());
-        shopService.updateCartItemQuantity(id, actionType);
+        shopService.updateCartItemQuantity(getSessionId(session), id, actionType);
 
         return "redirect:/cart/items";
     }
 
     @GetMapping("/items/{id}")
-    public String getItem(@PathVariable String id, Model model) {
+    public String getItem(@PathVariable String id, Model model, HttpSession session) {
         model.addAttribute("item", shopService.getItem(id));
         return "item";
     }
@@ -91,17 +100,18 @@ public class ShopController {
     @PostMapping("/items/{id}")
     public String updateItemQuantity(
             @PathVariable String id,
-            @RequestParam String action) {
+            @RequestParam String action,
+            HttpSession session) {
 
         ActionType actionType = ActionType.valueOf(action.toUpperCase());
-        shopService.updateItemQuantity(id, actionType);
+        shopService.updateItemQuantity(getSessionId(session), id, actionType);
 
         return "redirect:/items/" + id;
     }
 
     @PostMapping("/buy")
-    public String buy() {
-        String orderId = shopService.buy();
+    public String buy(HttpSession session) {
+        String orderId = shopService.buy(getSessionId(session));
 
         if (orderId != null) {
             return "redirect:/orders/" + orderId + "?newOrder=true";
@@ -123,7 +133,7 @@ public class ShopController {
             @RequestParam(defaultValue = "false") boolean newOrder,
             Model model) {
 
-        Order order = shopService.getOrder(id);
+        OrderDto order = shopService.getOrder(id);
         model.addAttribute("order", order);
         model.addAttribute("newOrder", newOrder);
 
