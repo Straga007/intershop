@@ -4,17 +4,17 @@ import com.shop.spring.data.intershop.model.Paging;
 import com.shop.spring.data.intershop.model.enums.ActionType;
 import com.shop.spring.data.intershop.model.enums.SortType;
 import com.shop.spring.data.intershop.service.ShopService;
-import com.shop.spring.data.intershop.view.dto.ItemDto;
-import com.shop.spring.data.intershop.view.dto.OrderDto;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
 
-import jakarta.servlet.http.HttpSession;
-import java.util.List;
+import java.net.URI;
+import java.util.Objects;
 
 @Controller
 public class ShopController {
@@ -25,118 +25,142 @@ public class ShopController {
     }
 
     // get sessionId
-    private String getSessionId(HttpSession session) {
-        return session.getId();
+    private String getSessionId(ServerWebExchange exchange) {
+        return Objects.requireNonNull(exchange.getSession().block()).getId();
     }
 
     @GetMapping("/")
-    public String index() {
-        return "redirect:/main/items";
+    public Mono<Void> index(ServerWebExchange exchange) {
+        return Mono.fromRunnable(() -> {
+            exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.FOUND);
+            exchange.getResponse().getHeaders().setLocation(URI.create("/main/items"));
+        });
     }
 
     @GetMapping("/main/items")
-    public String getMainItems(
+    public Mono<String> getMainItems(
             @RequestParam(defaultValue = "") String search,
             @RequestParam(defaultValue = "NO") String sort,
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(defaultValue = "1") int pageNumber,
             Model model,
-            HttpSession session) {
+            ServerWebExchange exchange) {
 
         model.addAttribute("search", search);
         model.addAttribute("sort", sort);
 
         SortType sortType = SortType.valueOf(sort);
-        List<List<ItemDto>> items = shopService.getMainItems(search, sortType, pageSize, pageNumber);
-        model.addAttribute("items", items);
-
-        boolean hasNext = !items.isEmpty() && items.getFirst().size() == pageSize;
-        Paging paging = new Paging(pageNumber, pageSize, hasNext, pageNumber > 1);
-        model.addAttribute("paging", paging);
-
-        return "main";
+        return shopService.getMainItems(search, sortType, pageSize, pageNumber)
+                .doOnNext(items -> {
+                    model.addAttribute("items", items);
+                    boolean hasNext = !items.isEmpty() && items.getFirst().size() == pageSize;
+                    Paging paging = new Paging(pageNumber, pageSize, hasNext, pageNumber > 1);
+                    model.addAttribute("paging", paging);
+                })
+                .thenReturn("main");
     }
 
     @PostMapping("/main/items/{id}")
-    public String updateMainItemQuantity(
+    public Mono<Void> updateMainItemQuantity(
             @PathVariable String id,
             @RequestParam String action,
-            HttpSession session) {
+            ServerWebExchange exchange) {
 
         ActionType actionType = ActionType.valueOf(action.toUpperCase());
-        shopService.updateMainItemQuantity(getSessionId(session), id, actionType);
-
-        return "redirect:/main/items";
+        String sessionId = getSessionId(exchange);
+        return shopService.updateMainItemQuantity(sessionId, id, actionType)
+                .then(Mono.fromRunnable(() -> {
+                    exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.FOUND);
+                    exchange.getResponse().getHeaders().setLocation(URI.create("/main/items"));
+                }));
     }
 
     @GetMapping("/cart/items")
-    public String getCartItems(Model model, HttpSession session) {
-        String sessionId = getSessionId(session);
-        model.addAttribute("items", shopService.getCartItems(sessionId));
-        model.addAttribute("total", shopService.getCartTotal(sessionId));
-        model.addAttribute("empty", shopService.isCartEmpty(sessionId));
-
-        return "cart";
+    public Mono<String> getCartItems(Model model, ServerWebExchange exchange) {
+        String sessionId = getSessionId(exchange);
+        return shopService.getCartItems(sessionId)
+                .zipWhen(items -> shopService.getCartTotal(sessionId))
+                .zipWhen(tuple -> shopService.isCartEmpty(sessionId))
+                .doOnNext(tuple -> {
+                    model.addAttribute("items", tuple.getT1().getT1());
+                    model.addAttribute("total", tuple.getT1().getT2());
+                    model.addAttribute("empty", tuple.getT2());
+                })
+                .thenReturn("cart");
     }
 
     @PostMapping("/cart/items/{id}")
-    public String updateCartItemQuantity(
+    public Mono<Void> updateCartItemQuantity(
             @PathVariable String id,
             @RequestParam String action,
-            HttpSession session) {
+            ServerWebExchange exchange) {
 
         ActionType actionType = ActionType.valueOf(action.toUpperCase());
-        shopService.updateCartItemQuantity(getSessionId(session), id, actionType);
-
-        return "redirect:/cart/items";
+        String sessionId = getSessionId(exchange);
+        return shopService.updateCartItemQuantity(sessionId, id, actionType)
+                .then(Mono.fromRunnable(() -> {
+                    exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.FOUND);
+                    exchange.getResponse().getHeaders().setLocation(URI.create("/cart/items"));
+                }));
     }
 
     @GetMapping("/items/{id}")
-    public String getItem(@PathVariable String id, Model model, HttpSession session) {
-        model.addAttribute("item", shopService.getItem(id));
-        return "item";
+    public Mono<String> getItem(@PathVariable String id, Model model, ServerWebExchange exchange) {
+        return shopService.getItem(id)
+                .doOnNext(item -> model.addAttribute("item", item))
+                .thenReturn("item");
     }
 
     @PostMapping("/items/{id}")
-    public String updateItemQuantity(
+    public Mono<Void> updateItemQuantity(
             @PathVariable String id,
             @RequestParam String action,
-            HttpSession session) {
+            ServerWebExchange exchange) {
 
         ActionType actionType = ActionType.valueOf(action.toUpperCase());
-        shopService.updateItemQuantity(getSessionId(session), id, actionType);
-
-        return "redirect:/items/" + id;
+        String sessionId = getSessionId(exchange);
+        return shopService.updateItemQuantity(sessionId, id, actionType)
+                .then(Mono.fromRunnable(() -> {
+                    exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.FOUND);
+                    exchange.getResponse().getHeaders().setLocation(URI.create("/items/" + id));
+                }));
     }
 
     @PostMapping("/buy")
-    public String buy(HttpSession session) {
-        String orderId = shopService.buy(getSessionId(session));
-
-        if (orderId != null) {
-            return "redirect:/orders/" + orderId + "?newOrder=true";
-        } else {
-            return "redirect:/cart/items";
-        }
+    public Mono<Void> buy(ServerWebExchange exchange) {
+        String sessionId = getSessionId(exchange);
+        return shopService.buy(sessionId)
+                .flatMap(orderId -> {
+                    if (orderId != null) {
+                        exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.FOUND);
+                        exchange.getResponse().getHeaders().setLocation(URI.create("/orders/" + orderId + "?newOrder=true"));
+                        return Mono.empty();
+                    } else {
+                        exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.FOUND);
+                        exchange.getResponse().getHeaders().setLocation(URI.create("/cart/items"));
+                        return Mono.empty();
+                    }
+                });
     }
 
     @GetMapping("/orders")
-    public String getOrders(Model model) {
-        model.addAttribute("orders", shopService.getOrders());
-
-        return "orders";
+    public Mono<String> getOrders(Model model) {
+        return shopService.getOrders()
+                .doOnNext(orders -> model.addAttribute("orders", orders))
+                .thenReturn("orders");
     }
 
     @GetMapping("/orders/{id}")
-    public String getOrder(
+    public Mono<String> getOrder(
             @PathVariable String id,
             @RequestParam(defaultValue = "false") boolean newOrder,
             Model model) {
 
-        OrderDto order = shopService.getOrder(id);
-        model.addAttribute("order", order);
-        model.addAttribute("newOrder", newOrder);
-
-        return "order";
+        return shopService.getOrder(id)
+                .doOnNext(order -> {
+                    model.addAttribute("order", order);
+                    model.addAttribute("newOrder", newOrder);
+                })
+                .thenReturn("order");
     }
 }

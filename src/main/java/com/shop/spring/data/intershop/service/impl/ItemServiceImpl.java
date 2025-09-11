@@ -8,9 +8,11 @@ import com.shop.spring.data.intershop.service.ItemService;
 import com.shop.spring.data.intershop.view.dto.ItemDto;
 import com.shop.spring.data.intershop.view.mapper.ShopMapper;
 import org.springframework.stereotype.Service;
-
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.Flux;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Comparator;
 
 @Service
 public class ItemServiceImpl implements ItemService {
@@ -23,62 +25,68 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public List<ItemDto> getAllItems() {
-        List<Item> items = itemRepository.findAll();
-        return shopMapper.toItemDtos(items);
+    public Mono<List<ItemDto>> getAllItems() {
+        return itemRepository.findAllItems()
+                .map(shopMapper::toItemDto)
+                .collectList();
     }
 
     @Override
-    public ItemDto getItemById(String id) {
-        Item item = itemRepository.findById(Long.parseLong(id)).orElse(null);
-        return shopMapper.toItemDto(item);
+    public Mono<ItemDto> getItemById(String id) {
+        return itemRepository.findById(Long.parseLong(id))
+                .map(shopMapper::toItemDto)
+                .switchIfEmpty(Mono.empty());
     }
 
     @Override
-    public List<ItemDto> searchItems(String searchQuery) {
-        List<Item> items = itemRepository.findByTitleOrDescriptionContaining(searchQuery);
-        return shopMapper.toItemDtos(items);
+    public Mono<List<ItemDto>> searchItems(String searchQuery) {
+        return itemRepository.findByTitleOrDescriptionContaining(searchQuery)
+                .map(shopMapper::toItemDto)
+                .collectList();
     }
 
     @Override
-    public List<List<ItemDto>> getMainItems(String search, SortType sort, int pageSize, int pageNumber) {
-        List<Item> items;
+    public Mono<List<List<ItemDto>>> getMainItems(String search, SortType sort, int pageSize, int pageNumber) {
+        Flux<Item> itemsFlux;
 
         if (search != null && !search.isEmpty()) {
-            items = itemRepository.findByTitleOrDescriptionContaining(search);
+            itemsFlux = itemRepository.findByTitleOrDescriptionContaining(search);
         } else {
-            items = itemRepository.findAll();
+            itemsFlux = itemRepository.findAllItems();
         }
 
-        switch (sort) {
-            case ALPHA:
-                items.sort((i1, i2) -> i1.getTitle().compareTo(i2.getTitle()));
-                break;
-            case PRICE:
-                items.sort((i1, i2) -> Double.compare(i1.getPrice(), i2.getPrice()));
-                break;
-            default:
-                break;
-        }
+        return itemsFlux.collectList()
+                .map(items -> {
+                    switch (sort) {
+                        case ALPHA:
+                            items.sort(Comparator.comparing(Item::getTitle));
+                            break;
+                        case PRICE:
+                            items.sort(Comparator.comparing(Item::getPrice));
+                            break;
+                        default:
+                            break;
+                    }
 
-        int startIndex = (pageNumber - 1) * pageSize;
-        int endIndex = Math.min(startIndex + pageSize, items.size());
+                    int startIndex = (pageNumber - 1) * pageSize;
+                    int endIndex = Math.min(startIndex + pageSize, items.size());
 
-        if (startIndex >= items.size()) {
-            return new ArrayList<>();
-        }
+                    if (startIndex >= items.size()) {
+                        return new ArrayList<List<ItemDto>>();
+                    }
 
-        List<Item> pageItems = items.subList(startIndex, endIndex);
-        List<ItemDto> pageItemDtos = shopMapper.toItemDtos(pageItems);
+                    List<Item> pageItems = items.subList(startIndex, endIndex);
+                    List<ItemDto> pageItemDtos = shopMapper.toItemDtos(pageItems);
 
-        List<List<ItemDto>> result = new ArrayList<>();
-        result.add(pageItemDtos);
+                    List<List<ItemDto>> result = new ArrayList<>();
+                    result.add(pageItemDtos);
 
-        return result;
+                    return result;
+                });
     }
 
     @Override
-    public void updateItemQuantity(String sessionId, String itemId, ActionType action) {
-        throw new UnsupportedOperationException("Use CartService for cart operations");
+    public Mono<Void> updateItemQuantity(String sessionId, String itemId, ActionType action) {
+        return Mono.error(new UnsupportedOperationException("Use CartService for cart operations"));
     }
 }

@@ -1,6 +1,9 @@
 package com.shop.spring.data.intershop.model;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.MappedCollection;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,18 +13,14 @@ import java.util.ArrayList;
 import java.util.UUID;
 
 @Getter
-@Entity
-@Table(name = "orders")
+@Table("orders")
 public class Order {
     @Setter
     @Id
-    @Column(name = "id")
     private String id;
 
-    @Column(name = "order_date")
     private LocalDateTime orderDate;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private List<OrderItem> orderItems = new ArrayList<>();
 
     public Order() {

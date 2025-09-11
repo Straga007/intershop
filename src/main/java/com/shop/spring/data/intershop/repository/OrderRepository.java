@@ -1,12 +1,13 @@
 package com.shop.spring.data.intershop.repository;
 
 import com.shop.spring.data.intershop.model.Order;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.r2dbc.repository.Query;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
+import reactor.core.publisher.Flux;
 
 @Repository
-public interface OrderRepository extends JpaRepository<Order, String> {
-    List<Order> findAllByOrderByOrderDateDesc();
+public interface OrderRepository extends ReactiveCrudRepository<Order, String> {
+    @Query("SELECT id, order_date FROM orders ORDER BY order_date DESC")
+    Flux<Order> findAllByOrderByOrderDateDesc();
 }

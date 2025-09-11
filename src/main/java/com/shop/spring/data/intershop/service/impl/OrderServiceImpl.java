@@ -11,7 +11,7 @@ import com.shop.spring.data.intershop.view.dto.ItemDto;
 import com.shop.spring.data.intershop.view.dto.OrderDto;
 import com.shop.spring.data.intershop.view.mapper.ShopMapper;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
@@ -30,46 +30,46 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    @Transactional
-    public String createOrder(String sessionId) {
-        if (cartService.isCartEmpty(sessionId)) {
-            return null;
-        }
+    public Mono<String> createOrder(String sessionId) {
+        return cartService.isCartEmpty(sessionId)
+                .filter(empty -> !empty.booleanValue())
+                .flatMap(empty -> cartService.getCartItems(sessionId))
+                .flatMap(cartItems -> {
+                    Order order = new Order();
 
-        List<ItemDto> cartItems = cartService.getCartItems(sessionId);
+                    // Обработка элементов заказа
+                    for (ItemDto itemDto : cartItems) {
+                        Item item = itemRepository.findById(Long.valueOf(itemDto.getId())).block();
+                        if (item != null) {
+                            int newCount = item.getCount() - itemDto.getCount();
+                            item.setCount(newCount);
+                            itemRepository.save(item).block();
 
-        Order order = new Order();
+                            OrderItem orderItem = new OrderItem();
+                            orderItem.setItem(item);
+                            orderItem.setQuantity(itemDto.getCount());
+                            order.addOrderItem(orderItem);
+                        }
+                    }
 
-        for (ItemDto itemDto : cartItems) {
-            Item item = itemRepository.findById(Long.valueOf(itemDto.getId())).orElse(null);
-            if (item != null) {
-                int newCount = item.getCount() - itemDto.getCount();
-                item.setCount(newCount);
-                itemRepository.save(item);
-
-                OrderItem orderItem = new OrderItem();
-                orderItem.setItem(item);
-                orderItem.setQuantity(itemDto.getCount());
-                order.addOrderItem(orderItem);
-            }
-        }
-
-        Order savedOrder = orderRepository.save(order);
-
-        cartService.clearCart(sessionId);
-
-        return savedOrder.getId();
+                    return orderRepository.save(order)
+                            .flatMap(savedOrder -> cartService.clearCart(sessionId)
+                                    .thenReturn(savedOrder.getId()));
+                })
+                .switchIfEmpty(Mono.empty());
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<OrderDto> getAllOrders() {
-        return shopMapper.toOrderDtos(orderRepository.findAllByOrderByOrderDateDesc());
+    public Mono<List<OrderDto>> getAllOrders() {
+        return orderRepository.findAllByOrderByOrderDateDesc()
+                .map(shopMapper::toOrderDto)
+                .collectList();
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public OrderDto getOrderById(String id) {
-        return shopMapper.toOrderDto(orderRepository.findById(id).orElse(null));
+    public Mono<OrderDto> getOrderById(String id) {
+        return orderRepository.findById(id)
+                .map(shopMapper::toOrderDto)
+                .switchIfEmpty(Mono.empty());
     }
 }

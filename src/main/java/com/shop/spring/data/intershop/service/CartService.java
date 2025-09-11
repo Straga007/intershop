@@ -2,13 +2,14 @@ package com.shop.spring.data.intershop.service;
 
 import com.shop.spring.data.intershop.model.enums.ActionType;
 import com.shop.spring.data.intershop.view.dto.ItemDto;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
 public interface CartService {
-    List<ItemDto> getCartItems(String sessionId);
-    void updateCartItemQuantity(String sessionId, String itemId, ActionType action);
-    double getCartTotal(String sessionId);
-    boolean isCartEmpty(String sessionId);
-    void clearCart(String sessionId);
+    Mono<List<ItemDto>> getCartItems(String sessionId);
+    Mono<Void> updateCartItemQuantity(String sessionId, String itemId, ActionType action);
+    Mono<Double> getCartTotal(String sessionId);
+    Mono<Boolean> isCartEmpty(String sessionId);
+    Mono<Void> clearCart(String sessionId);
 }

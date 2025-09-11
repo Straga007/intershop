@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <databaseChangeLog
         xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -30,6 +31,7 @@
                 <constraints nullable="false"/>
             </column>
             <column name="description" type="varchar(500)"/>
+            <column name="image" type="varchar(255)"/>
             <column name="price" type="double">
                 <constraints nullable="false"/>
             </column>

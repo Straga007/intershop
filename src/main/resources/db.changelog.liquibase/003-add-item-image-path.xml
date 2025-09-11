@@ -7,15 +7,9 @@
     <changeSet id="add_image_to_items" author="author">
         <preConditions>
             <tableExists tableName="items"/>
-            <not>
-                <columnExists tableName="items" columnName="image"/>
-            </not>
         </preConditions>
-        <addColumn tableName="items">
-            <column name="image" type="varchar(255)"/>
-        </addColumn>
-        <rollback>
-            <dropColumn tableName="items" columnName="image"/>
-        </rollback>
+        <!-- Столбец image теперь добавляется в основной миграции 001-init-item-schema.xml -->
+        <!-- Эта миграция оставлена для совместимости с существующими установками -->
+        <comment>Столбец image теперь добавляется в основной миграции 001-init-item-schema.xml</comment>
     </changeSet>
 </databaseChangeLog>
