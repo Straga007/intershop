@@ -1,0 +1,201 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                           http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!-- Тестовые товары -->
+    <changeSet id="insert-test-items" author="developer">
+        <preConditions>
+            <tableExists tableName="items"/>
+        </preConditions>
+        <insert tableName="items">
+            <column name="id" value="1"/>
+            <column name="title" value="Ноутбук Dell"/>
+            <column name="description" value="Мощный ноутбук для работы и игр"/>
+            <column name="price" value="55000.0"/>
+            <column name="count" value="10"/>
+            <column name="image" value="images/laptop_dell.jpg"/>
+        </insert>
+        <insert tableName="items">
+            <column name="id" value="2"/>
+            <column name="title" value="Смартфон"/>
+            <column name="description" value="Современный смартфон"/>
+            <column name="price" value="35000.0"/>
+            <column name="count" value="15"/>
+            <column name="image" value="images/laptop_dell.jpg"/>
+        </insert>
+        <insert tableName="items">
+            <column name="id" value="3"/>
+            <column name="title" value="Планшет"/>
+            <column name="description" value="планшет"/>
+            <column name="price" value="45000.0"/>
+            <column name="count" value="8"/>
+            <column name="image" value="images/laptop_dell.jpg"/>
+        </insert>
+        <insert tableName="items">
+            <column name="id" value="4"/>
+            <column name="title" value="Наушники"/>
+            <column name="description" value="наушники"/>
+            <column name="price" value="15000.0"/>
+            <column name="count" value="20"/>
+            <column name="image" value="images/laptop_dell.jpg"/>
+        </insert>
+        <insert tableName="items">
+            <column name="id" value="5"/>
+            <column name="title" value="Часы"/>
+            <column name="description" value="Смарт-часы"/>
+            <column name="price" value="25000.0"/>
+            <column name="count" value="12"/>
+            <column name="image" value="images/laptop_dell.jpg"/>
+        </insert>
+        <insert tableName="items">
+            <column name="id" value="6"/>
+            <column name="title" value="Телевизор"/>
+            <column name="description" value="Smart TV"/>
+            <column name="price" value="80000.0"/>
+            <column name="count" value="5"/>
+            <column name="image" value="images/laptop_dell.jpg"/>
+        </insert>
+        <insert tableName="items">
+            <column name="id" value="7"/>
+            <column name="title" value="Кофемашина"/>
+            <column name="description" value="кофемашина"/>
+            <column name="price" value="20000.0"/>
+            <column name="count" value="7"/>
+            <column name="image" value="images/laptop_dell.jpg"/>
+        </insert>
+        <insert tableName="items">
+            <column name="id" value="8"/>
+            <column name="title" value="Пылесос"/>
+            <column name="description" value="пылесос"/>
+            <column name="price" value="30000.0"/>
+            <column name="count" value="9"/>
+            <column name="image" value="images/laptop_dell.jpg"/>
+        </insert>
+        <insert tableName="items">
+            <column name="id" value="9"/>
+            <column name="title" value="Фотоаппарат"/>
+            <column name="description" value="фотоаппарат"/>
+            <column name="price" value="60000.0"/>
+            <column name="count" value="4"/>
+            <column name="image" value="images/laptop_dell.jpg"/>
+        </insert>
+        <insert tableName="items">
+            <column name="id" value="10"/>
+            <column name="title" value="приставка"/>
+            <column name="description" value="Последняя модель"/>
+            <column name="price" value="40000.0"/>
+            <column name="count" value="6"/>
+            <column name="image" value="images/laptop_dell.jpg"/>
+        </insert>
+        <insert tableName="items">
+            <column name="id" value="11"/>
+            <column name="title" value="Книжная полка IKEA(Мы скучаем)"/>
+            <column name="description" value="книжная полка из натурального дерева"/>
+            <column name="price" value="5000.0"/>
+            <column name="count" value="25"/>
+            <column name="image" value="images/laptop_dell.jpg"/>
+        </insert>
+        <insert tableName="items">
+            <column name="id" value="12"/>
+            <column name="title" value="велотренажер"/>
+            <column name="description" value="велотренажер"/>
+            <column name="price" value="35000.0"/>
+            <column name="count" value="3"/>
+            <column name="image" value="images/laptop_dell.jpg"/>
+        </insert>
+        <insert tableName="items">
+            <column name="id" value="13"/>
+            <column name="title" value="Геймпад"/>
+            <column name="description" value="геймпад"/>
+            <column name="price" value="4000.0"/>
+            <column name="count" value="30"/>
+            <column name="image" value="images/laptop_dell.jpg"/>
+        </insert>
+        <insert tableName="items">
+            <column name="id" value="14"/>
+            <column name="title" value="Кресло"/>
+            <column name="description" value="офисное кресло"/>
+            <column name="price" value="70000.0"/>
+            <column name="count" value="2"/>
+            <column name="image" value="images/laptop_dell.jpg"/>
+        </insert>
+        <insert tableName="items">
+            <column name="id" value="15"/>
+            <column name="title" value="Колонка"/>
+            <column name="description" value="Портативная"/>
+            <column name="price" value="8000.0"/>
+            <column name="count" value="18"/>
+            <column name="image" value="images/laptop_dell.jpg"/>
+        </insert>
+        <rollback>
+            <delete tableName="items">
+                <where>id BETWEEN 1 AND 15</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="insert-test-orders" author="developer">
+        <preConditions>
+            <tableExists tableName="orders"/>
+            <tableExists tableName="order_items"/>
+        </preConditions>
+
+        <insert tableName="orders">
+            <column name="id" value="1"/>
+            <column name="order_date" value="2025-01-15 10:30:00"/>
+        </insert>
+        <insert tableName="orders">
+            <column name="id" value="2"/>
+            <column name="order_date" value="2025-01-16 14:45:00"/>
+        </insert>
+        <insert tableName="orders">
+            <column name="id" value="3"/>
+            <column name="order_date" value="2025-01-17 09:15:00"/>
+        </insert>
+        <insert tableName="orders">
+            <column name="id" value="4"/>
+            <column name="order_date" value="2025-01-18 16:20:00"/>
+        </insert>
+        <insert tableName="orders">
+            <column name="id" value="5"/>
+            <column name="order_date" value="2025-01-19 11:10:00"/>
+        </insert>
+
+        <insert tableName="order_items">
+            <column name="order_id" value="1"/>
+            <column name="item_id" value="1"/>
+            <column name="quantity" value="1"/>
+        </insert>
+        <insert tableName="order_items">
+            <column name="order_id" value="1"/>
+            <column name="item_id" value="4"/>
+            <column name="quantity" value="2"/>
+        </insert>
+        <insert tableName="order_items">
+            <column name="order_id" value="2"/>
+            <column name="item_id" value="2"/>
+            <column name="quantity" value="1"/>
+        </insert>
+        <insert tableName="order_items">
+            <column name="order_id" value="3"/>
+            <column name="item_id" value="3"/>
+            <column name="quantity" value="1"/>
+        </insert>
+        <insert tableName="order_items">
+            <column name="order_id" value="3"/>
+            <column name="item_id" value="5"/>
+            <column name="quantity" value="1"/>
+        </insert>
+
+        <rollback>
+            <delete tableName="order_items">
+                <where>order_id BETWEEN 1 AND 5</where>
+            </delete>
+            <delete tableName="orders">
+                <where>id BETWEEN 1 AND 5</where>
+            </delete>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

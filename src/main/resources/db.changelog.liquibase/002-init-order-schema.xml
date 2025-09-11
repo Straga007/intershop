@@ -1,0 +1,94 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                           http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="create_order_sequence" author="author">
+        <preConditions>
+            <not>
+                <sequenceExists sequenceName="order_sequence"/>
+            </not>
+        </preConditions>
+        <createSequence sequenceName="order_sequence" incrementBy="1"/>
+        <rollback>
+            <dropSequence sequenceName="order_sequence"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="create_orders_table" author="author">
+        <preConditions>
+            <not>
+                <tableExists tableName="orders"/>
+            </not>
+        </preConditions>
+        <createTable tableName="orders">
+            <column name="id" type="varchar(36)">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="order_date" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <rollback>
+            <dropTable tableName="orders"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="create_order_items_table" author="author">
+        <preConditions>
+            <not>
+                <tableExists tableName="order_items"/>
+            </not>
+        </preConditions>
+        <createTable tableName="order_items">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="order_id" type="varchar(36)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="item_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="quantity" type="int">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <rollback>
+            <dropTable tableName="order_items"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="create_order_items_foreign_key_orders" author="author">
+        <preConditions>
+            <not>
+                <foreignKeyConstraintExists foreignKeyName="fk_order_items_orders"/>
+            </not>
+        </preConditions>
+        <addForeignKeyConstraint baseTableName="order_items"
+                                 baseColumnNames="order_id"
+                                 referencedTableName="orders"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_order_items_orders"/>
+        <rollback>
+            <dropForeignKeyConstraint baseTableName="order_items" constraintName="fk_order_items_orders"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="create_order_items_foreign_key_items" author="author">
+        <preConditions>
+            <not>
+                <foreignKeyConstraintExists foreignKeyName="fk_order_items_items"/>
+            </not>
+        </preConditions>
+        <addForeignKeyConstraint baseTableName="order_items"
+                                 baseColumnNames="item_id"
+                                 referencedTableName="items"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_order_items_items"/>
+        <rollback>
+            <dropForeignKeyConstraint baseTableName="order_items" constraintName="fk_order_items_items"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

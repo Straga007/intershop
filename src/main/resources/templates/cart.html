@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Корзина</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+<body>
+<div class="container">
+    <h1>Корзина</h1>
+    <div th:if="${empty}">
+        <p>Корзина пуста</p>
+        <a th:href="@{/main/items}">Продолжить покупки</a>
+    </div>
+    <div th:unless="${empty}">
+        <div th:each="item : ${items}" class="item">
+            <img width="300" height="300" th:src="${baseUrl +'/'+ item.getImage()}">
+            <h3 th:text="${item.getTitle()}">Название товара</h3>
+            <p th:text="${item.getDescription()}">Описание товара</p>
+            <p>Цена: <span th:text="${item.getPrice()}">0</span> руб.</p>
+            <p>Количество: <span th:text="${item.getCount()}">0</span></p>
+            <p>Сумма: <span th:text="${item.getPrice() * item.getCount()}">0</span> руб.</p>
+            <form th:action="@{'/cart/items/' + ${item.getId()}}" method="post">
+                <input type="hidden" name="action" value="MINUS">
+                <button type="submit">-</button>
+            </form>
+            <form th:action="@{'/cart/items/' + ${item.getId()}}" method="post">
+                <input type="hidden" name="action" value="PLUS">
+                <button type="submit">+</button>
+            </form>
+            <form th:action="@{'/cart/items/' + ${item.getId()}}" method="post">
+                <input type="hidden" name="action" value="DELETE">
+                <button type="submit">Удалить</button>
+            </form>
+        </div>
+        <p>Общая сумма: <span th:text="${total}">0</span> руб.</p>
+        <form th:action="@{/buy}" method="post">
+            <button type="submit">Оформить заказ</button>
+        </form>
+        <a th:href="@{/main/items}">Продолжить покупки</a>
+    </div>
+</div>
+</body>
+</html>
