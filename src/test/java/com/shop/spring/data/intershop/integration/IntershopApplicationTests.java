@@ -22,12 +22,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class IntershopApplicationTests {
 
     @Autowired
-    private ItemRepository itemRepository;
-
-    @Autowired
-    private OrderRepository orderRepository;
-
-    @Autowired
     private ShopService shopService;
 
     @Test
@@ -38,7 +32,7 @@ class IntershopApplicationTests {
     void testFindAllItems() {
         List<ItemDto> items = shopService.getMainItems("", SortType.NO, 20, 1).getFirst();
         assertNotNull(items);
-        //assertEquals(15, items.size()); // Это зависит от тестовых данных
+        assertEquals(15, items.size());
     }
 
     @Test
@@ -46,30 +40,30 @@ class IntershopApplicationTests {
         ItemDto item = shopService.getItem("1");
         assertNotNull(item);
         assertEquals("1", item.getId());
-        //assertEquals("Ноутбук Dell", item.getTitle()); // Зависит от тестовых данных
+        assertEquals("Ноутбук Dell", item.getTitle());
     }
 
     @Test
     void testFindItemsBySearch() {
         List<ItemDto> items = shopService.getMainItems("ноутбук", SortType.NO, 20, 1).getFirst();
         assertNotNull(items);
-        //assertFalse(items.isEmpty()); // Зависит от тестовых данных
-        //assertTrue(items.getFirst().getTitle().toLowerCase().contains("ноутбук")); // Зависит от тестовых данных
+        assertFalse(items.isEmpty());
+        assertTrue(items.getFirst().getTitle().toLowerCase().contains("ноутбук"));
     }
 
     @Test
     void testFindAllOrders() {
         List<OrderDto> orders = shopService.getOrders();
         assertNotNull(orders);
-        //assertEquals(5, orders.size()); // Зависит от тестовых данных
+        assertEquals(5, orders.size());
     }
 
     @Test
     void testShopServiceGetMainItems() {
         List<List<ItemDto>> items = shopService.getMainItems("", SortType.NO, 10, 1);
         assertNotNull(items);
-        //assertFalse(items.isEmpty()); // Зависит от тестовых данных
-        //assertTrue(items.getFirst().size() <= 10); // Зависит от тестовых данных
+        assertFalse(items.isEmpty());
+        assertTrue(items.getFirst().size() <= 10);
     }
 
     @Test
@@ -95,6 +89,6 @@ class IntershopApplicationTests {
     void testShopServiceGetOrders() {
         List<OrderDto> orders = shopService.getOrders();
         assertNotNull(orders);
-        //assertEquals(5, orders.size()); // Зависит от тестовых данных
+        assertEquals(5, orders.size());
     }
 }
