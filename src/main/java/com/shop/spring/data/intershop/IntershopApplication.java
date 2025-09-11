@@ -8,5 +8,6 @@ public class IntershopApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(IntershopApplication.class, args);
+		//test
 	}
 }
