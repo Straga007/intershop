@@ -13,6 +13,9 @@ public class OrderItem {
     @Id
     private String id;
 
+    @Column("item_id")
+    private Long itemId;
+
     private Item item;
 
     private int quantity;

@@ -5,6 +5,7 @@ import com.shop.spring.data.intershop.model.Order;
 import com.shop.spring.data.intershop.model.OrderItem;
 import com.shop.spring.data.intershop.repository.ItemRepository;
 import com.shop.spring.data.intershop.repository.OrderRepository;
+import com.shop.spring.data.intershop.repository.OrderItemRepository;
 import com.shop.spring.data.intershop.service.CartService;
 import com.shop.spring.data.intershop.service.OrderService;
 import com.shop.spring.data.intershop.view.dto.ItemDto;
@@ -19,12 +20,14 @@ import java.util.List;
 @Service
 public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
     private final ItemRepository itemRepository;
     private final CartService cartService;
     private final ShopMapper shopMapper;
 
-    public OrderServiceImpl(OrderRepository orderRepository, ItemRepository itemRepository, CartService cartService, ShopMapper shopMapper) {
+    public OrderServiceImpl(OrderRepository orderRepository, OrderItemRepository orderItemRepository, ItemRepository itemRepository, CartService cartService, ShopMapper shopMapper) {
         this.orderRepository = orderRepository;
+        this.orderItemRepository = orderItemRepository;
         this.itemRepository = itemRepository;
         this.cartService = cartService;
         this.shopMapper = shopMapper;
@@ -69,6 +72,21 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Mono<List<OrderDto>> getAllOrders() {
         return orderRepository.findAllByOrderByOrderDateDesc()
+                .flatMap(order -> 
+                    orderItemRepository.findByOrderId(order.getId())
+                        .flatMap(orderItem -> 
+                            itemRepository.findById(orderItem.getItemId())
+                                .map(item -> {
+                                    orderItem.setItem(item);
+                                    return orderItem;
+                                })
+                        )
+                        .collectList()
+                        .map(orderItems -> {
+                            order.setOrderItems(orderItems);
+                            return order;
+                        })
+                )
                 .map(shopMapper::toOrderDto)
                 .collectList();
     }
@@ -76,6 +94,21 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Mono<OrderDto> getOrderById(String id) {
         return orderRepository.findById(id)
+                .flatMap(order ->
+                    orderItemRepository.findByOrderId(order.getId())
+                        .flatMap(orderItem ->
+                            itemRepository.findById(orderItem.getItemId())
+                                .map(item -> {
+                                    orderItem.setItem(item);
+                                    return orderItem;
+                                })
+                        )
+                        .collectList()
+                        .map(orderItems -> {
+                            order.setOrderItems(orderItems);
+                            return order;
+                        })
+                )
                 .map(shopMapper::toOrderDto)
                 .switchIfEmpty(Mono.empty());
     }
