@@ -13,6 +13,7 @@ import com.shop.spring.data.intershop.view.mapper.ShopMapper;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -36,23 +37,29 @@ public class OrderServiceImpl implements OrderService {
                 .flatMap(empty -> cartService.getCartItems(sessionId))
                 .flatMap(cartItems -> {
                     Order order = new Order();
-
+                    List<Mono<OrderItem>> orderItemMonos = new ArrayList<>();
+                    
                     // Обработка элементов заказа
                     for (ItemDto itemDto : cartItems) {
-                        Item item = itemRepository.findById(Long.valueOf(itemDto.getId())).block();
-                        if (item != null) {
-                            int newCount = item.getCount() - itemDto.getCount();
-                            item.setCount(newCount);
-                            itemRepository.save(item).block();
-
-                            OrderItem orderItem = new OrderItem();
-                            orderItem.setItem(item);
-                            orderItem.setQuantity(itemDto.getCount());
-                            order.addOrderItem(orderItem);
-                        }
+                        Mono<OrderItem> orderItemMono = itemRepository.findById(Long.valueOf(itemDto.getId()))
+                                .flatMap(item -> {
+                                    int newCount = item.getCount() - itemDto.getCount();
+                                    item.setCount(newCount);
+                                    return itemRepository.save(item);
+                                })
+                                .map(item -> {
+                                    OrderItem orderItem = new OrderItem();
+                                    orderItem.setItem(item);
+                                    orderItem.setQuantity(itemDto.getCount());
+                                    order.addOrderItem(orderItem);
+                                    return orderItem;
+                                });
+                        
+                        orderItemMonos.add(orderItemMono);
                     }
-
-                    return orderRepository.save(order)
+                    
+                    return Mono.when(orderItemMonos)
+                            .then(orderRepository.save(order))
                             .flatMap(savedOrder -> cartService.clearCart(sessionId)
                                     .thenReturn(savedOrder.getId()));
                 })

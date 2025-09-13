@@ -25,8 +25,8 @@ public class ShopController {
     }
 
     // get sessionId
-    private String getSessionId(ServerWebExchange exchange) {
-        return Objects.requireNonNull(exchange.getSession().block()).getId();
+    private Mono<String> getSessionId(ServerWebExchange exchange) {
+        return exchange.getSession().map(webSession -> webSession.getId());
     }
 
     @GetMapping("/")
@@ -67,8 +67,8 @@ public class ShopController {
             ServerWebExchange exchange) {
 
         ActionType actionType = ActionType.valueOf(action.toUpperCase());
-        String sessionId = getSessionId(exchange);
-        return shopService.updateMainItemQuantity(sessionId, id, actionType)
+        return getSessionId(exchange)
+                .flatMap(sessionId -> shopService.updateMainItemQuantity(sessionId, id, actionType))
                 .then(Mono.fromRunnable(() -> {
                     exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.FOUND);
                     exchange.getResponse().getHeaders().setLocation(URI.create("/main/items"));
@@ -77,16 +77,16 @@ public class ShopController {
 
     @GetMapping("/cart/items")
     public Mono<String> getCartItems(Model model, ServerWebExchange exchange) {
-        String sessionId = getSessionId(exchange);
-        return shopService.getCartItems(sessionId)
-                .zipWhen(items -> shopService.getCartTotal(sessionId))
-                .zipWhen(tuple -> shopService.isCartEmpty(sessionId))
-                .doOnNext(tuple -> {
-                    model.addAttribute("items", tuple.getT1().getT1());
-                    model.addAttribute("total", tuple.getT1().getT2());
-                    model.addAttribute("empty", tuple.getT2());
-                })
-                .thenReturn("cart");
+        return getSessionId(exchange)
+                .flatMap(sessionId -> shopService.getCartItems(sessionId)
+                        .zipWhen(items -> shopService.getCartTotal(sessionId))
+                        .zipWhen(tuple -> shopService.isCartEmpty(sessionId))
+                        .doOnNext(tuple -> {
+                            model.addAttribute("items", tuple.getT1().getT1());
+                            model.addAttribute("total", tuple.getT1().getT2());
+                            model.addAttribute("empty", tuple.getT2());
+                        })
+                        .thenReturn("cart"));
     }
 
     @PostMapping("/cart/items/{id}")
@@ -96,8 +96,8 @@ public class ShopController {
             ServerWebExchange exchange) {
 
         ActionType actionType = ActionType.valueOf(action.toUpperCase());
-        String sessionId = getSessionId(exchange);
-        return shopService.updateCartItemQuantity(sessionId, id, actionType)
+        return getSessionId(exchange)
+                .flatMap(sessionId -> shopService.updateCartItemQuantity(sessionId, id, actionType))
                 .then(Mono.fromRunnable(() -> {
                     exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.FOUND);
                     exchange.getResponse().getHeaders().setLocation(URI.create("/cart/items"));
@@ -118,8 +118,8 @@ public class ShopController {
             ServerWebExchange exchange) {
 
         ActionType actionType = ActionType.valueOf(action.toUpperCase());
-        String sessionId = getSessionId(exchange);
-        return shopService.updateItemQuantity(sessionId, id, actionType)
+        return getSessionId(exchange)
+                .flatMap(sessionId -> shopService.updateItemQuantity(sessionId, id, actionType))
                 .then(Mono.fromRunnable(() -> {
                     exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.FOUND);
                     exchange.getResponse().getHeaders().setLocation(URI.create("/items/" + id));
@@ -128,8 +128,8 @@ public class ShopController {
 
     @PostMapping("/buy")
     public Mono<Void> buy(ServerWebExchange exchange) {
-        String sessionId = getSessionId(exchange);
-        return shopService.buy(sessionId)
+        return getSessionId(exchange)
+                .flatMap(sessionId -> shopService.buy(sessionId))
                 .flatMap(orderId -> {
                     if (orderId != null) {
                         exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.FOUND);
