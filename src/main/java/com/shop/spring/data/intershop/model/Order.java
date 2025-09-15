@@ -7,23 +7,25 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Getter
 @Setter
 @Table("orders")
-public class Order implements Persistable<Long> {
+public class Order implements Persistable<String> {
     @Id
-    private Long id;
+    private String id;
 
     private LocalDateTime orderDate;
 
     public Order() {
+        this.id = UUID.randomUUID().toString();
         this.orderDate = LocalDateTime.now();
     }
 
     @Override
     public boolean isNew() {
-        return id == null;
+        return true;
     }
 
     public double getTotalSum() {

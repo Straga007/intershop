@@ -66,7 +66,7 @@ public class ShopMapper {
         }
 
         OrderDto orderDto = new OrderDto();
-        orderDto.setId(String.valueOf(order.getId()));
+        orderDto.setId(order.getId());
         orderDto.setItems(new ArrayList<>());
         return orderDto;
     }
@@ -77,7 +77,7 @@ public class ShopMapper {
         }
 
         Order order = new Order();
-        order.setId(Long.valueOf(orderDto.getId()));
+        order.setId(orderDto.getId());
         // orderItems устанавливаются отдельно
         return order;
     }

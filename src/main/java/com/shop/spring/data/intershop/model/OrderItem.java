@@ -17,7 +17,7 @@ public class OrderItem {
     private Long itemId;
 
     @Column("order_id")
-    private Long orderId;
+    private String orderId;
 
     private int quantity;
 

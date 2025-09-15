@@ -2,7 +2,6 @@ package com.shop.spring.data.intershop.configuration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.ResponseCookie;
 import org.springframework.web.reactive.config.EnableWebFlux;
 import org.springframework.web.reactive.config.ResourceHandlerRegistry;
 import org.springframework.web.reactive.config.ViewResolverRegistry;
@@ -14,7 +13,6 @@ import org.thymeleaf.spring6.templateresolver.SpringResourceTemplateResolver;
 import org.thymeleaf.spring6.view.reactive.ThymeleafReactiveViewResolver;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 
 @Configuration
 @EnableWebFlux

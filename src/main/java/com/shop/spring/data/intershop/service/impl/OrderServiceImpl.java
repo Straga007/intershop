@@ -16,7 +16,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -61,7 +60,7 @@ public class OrderServiceImpl implements OrderService {
                                 
                                 return Mono.when(orderItemMonos)
                                         .then(cartService.clearCart(sessionId))
-                                        .thenReturn(String.valueOf(savedOrder.getId()));
+                                        .thenReturn(savedOrder.getId());
                             });
                 });
     }
@@ -75,7 +74,7 @@ public class OrderServiceImpl implements OrderService {
                         .flatMap(orderItems -> {
                             if (orderItems.isEmpty()) {
                                 OrderDto orderDto = new OrderDto();
-                                orderDto.setId(String.valueOf(order.getId()));
+                                orderDto.setId(order.getId());
                                 orderDto.setItems(new ArrayList<>());
                                 return Mono.just(orderDto);
                             }
@@ -107,7 +106,7 @@ public class OrderServiceImpl implements OrderService {
                                 }
                                 
                                 OrderDto orderDto = new OrderDto();
-                                orderDto.setId(String.valueOf(order.getId()));
+                                orderDto.setId(order.getId());
                                 orderDto.setItems(itemDtos);
                                 return orderDto;
                             });
@@ -118,14 +117,14 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Mono<OrderDto> getOrderById(String id) {
-        return orderRepository.findById(Long.valueOf(id))
+        return orderRepository.findById(id)
                 .flatMap(order -> 
                     orderItemRepository.findByOrderId(order.getId())
                         .collectList()
                         .flatMap(orderItems -> {
                             if (orderItems.isEmpty()) {
                                 OrderDto orderDto = new OrderDto();
-                                orderDto.setId(String.valueOf(order.getId()));
+                                orderDto.setId(order.getId());
                                 orderDto.setItems(new ArrayList<>());
                                 return Mono.just(orderDto);
                             }
@@ -157,7 +156,7 @@ public class OrderServiceImpl implements OrderService {
                                 }
                                 
                                 OrderDto orderDto = new OrderDto();
-                                orderDto.setId(String.valueOf(order.getId()));
+                                orderDto.setId(order.getId());
                                 orderDto.setItems(itemDtos);
                                 return orderDto;
                             });
