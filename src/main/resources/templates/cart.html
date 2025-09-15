@@ -15,7 +15,7 @@
     </div>
     <div th:unless="${empty}">
         <div th:each="item : ${items}" class="item">
-            <img width="300" height="300" th:src="${baseUrl +'/'+ item.getImage()}">
+            <img width="300" height="300" th:src="@{'/' + ${item.getImage()}}">
             <h3 th:text="${item.getTitle()}">Название товара</h3>
             <p th:text="${item.getDescription()}">Описание товара</p>
             <p>Цена: <span th:text="${item.getPrice()}">0</span> руб.</p>
