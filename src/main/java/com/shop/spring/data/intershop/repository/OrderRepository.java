@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 
 @Repository
-public interface OrderRepository extends ReactiveCrudRepository<Order, String> {
+public interface OrderRepository extends ReactiveCrudRepository<Order, Long> {
     @Query("SELECT id, order_date FROM orders ORDER BY order_date DESC")
     Flux<Order> findAllByOrderByOrderDateDesc();
 }

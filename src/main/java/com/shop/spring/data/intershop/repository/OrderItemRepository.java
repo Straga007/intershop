@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 
 @Repository
-public interface OrderItemRepository extends ReactiveCrudRepository<OrderItem, String> {
+public interface OrderItemRepository extends ReactiveCrudRepository<OrderItem, Long> {
     @Query("SELECT id, item_id, quantity, order_id FROM order_items WHERE order_id = :orderId")
-    Flux<OrderItem> findByOrderId(String orderId);
+    Flux<OrderItem> findByOrderId(Long orderId);
 }

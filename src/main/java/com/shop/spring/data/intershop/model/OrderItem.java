@@ -11,26 +11,21 @@ import org.springframework.data.relational.core.mapping.Column;
 @Table("order_items")
 public class OrderItem {
     @Id
-    private String id;
+    private Long id;
 
     @Column("item_id")
     private Long itemId;
 
-    private Item item;
+    @Column("order_id")
+    private Long orderId;
 
     private int quantity;
-
-    private Order order;
 
     public OrderItem() {
     }
 
-    public OrderItem(Item item, int quantity) {
-        this.item = item;
+    public OrderItem(Long itemId, int quantity) {
+        this.itemId = itemId;
         this.quantity = quantity;
-    }
-
-    public double getTotalPrice() {
-        return item.getPrice() * quantity;
     }
 }

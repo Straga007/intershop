@@ -7,6 +7,7 @@ import com.shop.spring.data.intershop.view.dto.ItemDto;
 import com.shop.spring.data.intershop.view.dto.OrderDto;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -64,20 +65,9 @@ public class ShopMapper {
             return null;
         }
 
-        //OrderItem в ItemDto с количеством из OrderItem
-        List<ItemDto> itemDtos = order.getOrderItems().stream()
-                .map(orderItem -> {
-                    ItemDto itemDto = toItemDto(orderItem.getItem());
-                    if (itemDto != null) {
-                        itemDto.setCount(orderItem.getQuantity());
-                    }
-                    return itemDto;
-                })
-                .collect(Collectors.toList());
-
         OrderDto orderDto = new OrderDto();
-        orderDto.setId(order.getId());
-        orderDto.setItems(itemDtos);
+        orderDto.setId(String.valueOf(order.getId()));
+        orderDto.setItems(new ArrayList<>());
         return orderDto;
     }
 
@@ -86,19 +76,9 @@ public class ShopMapper {
             return null;
         }
 
-        //ItemDto в OrderItem
-        List<OrderItem> orderItems = orderDto.getItems().stream()
-                .map(itemDto -> {
-                    OrderItem orderItem = new OrderItem();
-                    orderItem.setItem(toItem(itemDto));
-                    orderItem.setQuantity(itemDto.getCount());
-                    return orderItem;
-                })
-                .collect(Collectors.toList());
-
         Order order = new Order();
-        order.setId(orderDto.getId());
-        order.setOrderItems(orderItems);
+        order.setId(Long.valueOf(orderDto.getId()));
+        // orderItems устанавливаются отдельно
         return order;
     }
 

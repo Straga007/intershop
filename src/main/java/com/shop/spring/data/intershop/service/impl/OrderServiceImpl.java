@@ -16,6 +16,8 @@ import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -25,7 +27,8 @@ public class OrderServiceImpl implements OrderService {
     private final CartService cartService;
     private final ShopMapper shopMapper;
 
-    public OrderServiceImpl(OrderRepository orderRepository, OrderItemRepository orderItemRepository, ItemRepository itemRepository, CartService cartService, ShopMapper shopMapper) {
+    public OrderServiceImpl(OrderRepository orderRepository, OrderItemRepository orderItemRepository, 
+                           ItemRepository itemRepository, CartService cartService, ShopMapper shopMapper) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.itemRepository = itemRepository;
@@ -35,37 +38,32 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Mono<String> createOrder(String sessionId) {
-        return cartService.isCartEmpty(sessionId)
-                .filter(empty -> !empty.booleanValue())
-                .flatMap(empty -> cartService.getCartItems(sessionId))
+        return cartService.getCartItems(sessionId)
                 .flatMap(cartItems -> {
-                    Order order = new Order();
-                    List<Mono<OrderItem>> orderItemMonos = new ArrayList<>();
-                    
-                    for (ItemDto itemDto : cartItems) {
-                        Mono<OrderItem> orderItemMono = itemRepository.findById(Long.valueOf(itemDto.getId()))
-                                .flatMap(item -> {
-                                    int newCount = item.getCount() - itemDto.getCount();
-                                    item.setCount(newCount);
-                                    return itemRepository.save(item);
-                                })
-                                .map(item -> {
-                                    OrderItem orderItem = new OrderItem();
-                                    orderItem.setItem(item);
-                                    orderItem.setQuantity(itemDto.getCount());
-                                    order.addOrderItem(orderItem);
-                                    return orderItem;
-                                });
-                        
-                        orderItemMonos.add(orderItemMono);
+                    if (cartItems.isEmpty()) {
+                        return Mono.error(new RuntimeException("Корзина пуста"));
                     }
                     
-                    return Mono.when(orderItemMonos)
-                            .then(orderRepository.save(order))
-                            .flatMap(savedOrder -> cartService.clearCart(sessionId)
-                                    .thenReturn(savedOrder.getId()));
-                })
-                .switchIfEmpty(Mono.empty());
+                    Order order = new Order();
+
+                    return orderRepository.save(order)
+                            .flatMap(savedOrder -> {
+                                List<Mono<OrderItem>> orderItemMonos = new ArrayList<>();
+                                
+                                for (ItemDto itemDto : cartItems) {
+                                    OrderItem orderItem = new OrderItem();
+                                    orderItem.setItemId(Long.valueOf(itemDto.getId()));
+                                    orderItem.setQuantity(itemDto.getCount());
+                                    orderItem.setOrderId(savedOrder.getId());
+                                    
+                                    orderItemMonos.add(orderItemRepository.save(orderItem));
+                                }
+                                
+                                return Mono.when(orderItemMonos)
+                                        .then(cartService.clearCart(sessionId))
+                                        .thenReturn(String.valueOf(savedOrder.getId()));
+                            });
+                });
     }
 
     @Override
@@ -73,42 +71,97 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.findAllByOrderByOrderDateDesc()
                 .flatMap(order -> 
                     orderItemRepository.findByOrderId(order.getId())
-                        .flatMap(orderItem -> 
-                            itemRepository.findById(orderItem.getItemId())
-                                .map(item -> {
-                                    orderItem.setItem(item);
-                                    return orderItem;
-                                })
-                        )
                         .collectList()
-                        .map(orderItems -> {
-                            order.setOrderItems(orderItems);
-                            return order;
+                        .flatMap(orderItems -> {
+                            if (orderItems.isEmpty()) {
+                                OrderDto orderDto = new OrderDto();
+                                orderDto.setId(String.valueOf(order.getId()));
+                                orderDto.setItems(new ArrayList<>());
+                                return Mono.just(orderDto);
+                            }
+                            
+                            // Загружаем товары для каждого OrderItem
+                            List<Mono<Item>> itemMonos = orderItems.stream()
+                                .map(orderItem -> itemRepository.findById(orderItem.getItemId()))
+                                .collect(Collectors.toList());
+                            
+                            return Mono.zip(itemMonos, itemsArray -> {
+                                List<Item> items = new ArrayList<>();
+                                for (Object item : itemsArray) {
+                                    if (item instanceof Item) {
+                                        items.add((Item) item);
+                                    }
+                                }
+                                return items;
+                            }).map(items -> {
+                                // Создаем OrderDto
+                                List<ItemDto> itemDtos = new ArrayList<>();
+                                
+                                for (int i = 0; i < items.size(); i++) {
+                                    Item item = items.get(i);
+                                    OrderItem orderItem = orderItems.get(i);
+                                    
+                                    ItemDto itemDto = shopMapper.toItemDto(item);
+                                    itemDto.setCount(orderItem.getQuantity());
+                                    itemDtos.add(itemDto);
+                                }
+                                
+                                OrderDto orderDto = new OrderDto();
+                                orderDto.setId(String.valueOf(order.getId()));
+                                orderDto.setItems(itemDtos);
+                                return orderDto;
+                            });
                         })
                 )
-                .map(shopMapper::toOrderDto)
                 .collectList();
     }
 
     @Override
     public Mono<OrderDto> getOrderById(String id) {
-        return orderRepository.findById(id)
-                .flatMap(order ->
+        return orderRepository.findById(Long.valueOf(id))
+                .flatMap(order -> 
                     orderItemRepository.findByOrderId(order.getId())
-                        .flatMap(orderItem ->
-                            itemRepository.findById(orderItem.getItemId())
-                                .map(item -> {
-                                    orderItem.setItem(item);
-                                    return orderItem;
-                                })
-                        )
                         .collectList()
-                        .map(orderItems -> {
-                            order.setOrderItems(orderItems);
-                            return order;
+                        .flatMap(orderItems -> {
+                            if (orderItems.isEmpty()) {
+                                OrderDto orderDto = new OrderDto();
+                                orderDto.setId(String.valueOf(order.getId()));
+                                orderDto.setItems(new ArrayList<>());
+                                return Mono.just(orderDto);
+                            }
+                            
+                            // Загружаем товары для каждого OrderItem
+                            List<Mono<Item>> itemMonos = orderItems.stream()
+                                .map(orderItem -> itemRepository.findById(orderItem.getItemId()))
+                                .collect(Collectors.toList());
+                            
+                            return Mono.zip(itemMonos, itemsArray -> {
+                                List<Item> items = new ArrayList<>();
+                                for (Object item : itemsArray) {
+                                    if (item instanceof Item) {
+                                        items.add((Item) item);
+                                    }
+                                }
+                                return items;
+                            }).map(items -> {
+                                // Создаем OrderDto
+                                List<ItemDto> itemDtos = new ArrayList<>();
+                                
+                                for (int i = 0; i < items.size(); i++) {
+                                    Item item = items.get(i);
+                                    OrderItem orderItem = orderItems.get(i);
+                                    
+                                    ItemDto itemDto = shopMapper.toItemDto(item);
+                                    itemDto.setCount(orderItem.getQuantity());
+                                    itemDtos.add(itemDto);
+                                }
+                                
+                                OrderDto orderDto = new OrderDto();
+                                orderDto.setId(String.valueOf(order.getId()));
+                                orderDto.setItems(itemDtos);
+                                return orderDto;
+                            });
                         })
-                )
-                .map(shopMapper::toOrderDto)
-                .switchIfEmpty(Mono.empty());
+                );
     }
 }
