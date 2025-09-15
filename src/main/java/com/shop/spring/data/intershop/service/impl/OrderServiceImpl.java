@@ -42,7 +42,6 @@ public class OrderServiceImpl implements OrderService {
                     Order order = new Order();
                     List<Mono<OrderItem>> orderItemMonos = new ArrayList<>();
                     
-                    // Обработка элементов заказа
                     for (ItemDto itemDto : cartItems) {
                         Mono<OrderItem> orderItemMono = itemRepository.findById(Long.valueOf(itemDto.getId()))
                                 .flatMap(item -> {

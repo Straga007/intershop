@@ -20,7 +20,8 @@ public class CartServiceImpl implements CartService {
     private final ItemRepository itemRepository;
     private final ShopMapper shopMapper;
 
-    private final Map<String, Map<String, Integer>> sessionCarts = new ConcurrentHashMap<>();
+    // Временно используем одну общую корзину для всего приложения
+    private final Map<String, Integer> sharedCart = new ConcurrentHashMap<>();
 
     public CartServiceImpl(ItemRepository itemRepository, ShopMapper shopMapper) {
         this.itemRepository = itemRepository;
@@ -29,7 +30,7 @@ public class CartServiceImpl implements CartService {
 
     //корзина по sessionId
     private Map<String, Integer> getCart(String sessionId) {
-        return sessionCarts.computeIfAbsent(sessionId, k -> new HashMap<>());
+        return sharedCart;
     }
 
     @Override
@@ -51,93 +52,89 @@ public class CartServiceImpl implements CartService {
                         cartItem.setImage(item.getImage());
                         cartItem.setPrice(item.getPrice());
                         cartItem.setCount(quantity);
-                        return shopMapper.toItemDto(cartItem);
-                    });
+                        return cartItem;
+                    })
+                    .map(shopMapper::toItemDto);
             
             itemMonos.add(itemDtoMono);
         }
         
         return Mono.zip(itemMonos, objects -> {
                     List<ItemDto> result = new ArrayList<>();
-                    for (Object object : objects) {
-                        if (object instanceof ItemDto) {
-                            result.add((ItemDto) object);
-                        }
+                    for (Object obj : objects) {
+                        result.add((ItemDto) obj);
                     }
                     return result;
                 })
+                .onErrorReturn(new ArrayList<>())
                 .defaultIfEmpty(new ArrayList<>());
     }
 
     @Override
-    public Mono<Void> updateCartItemQuantity(String sessionId, String itemId, ActionType action) {
-        return itemRepository.findById(Long.parseLong(itemId))
-            .doOnNext(item -> {
-                Map<String, Integer> cart = getCart(sessionId);
-                int currentQuantity = cart.getOrDefault(itemId, 0);
-
-                if (item == null) {
-                    return;
-                }
-
-                switch (action) {
-                    case PLUS:
-                        if (currentQuantity < item.getCount()) {
-                            cart.put(itemId, currentQuantity + 1);
-                        }
-                        break;
-                    case MINUS:
-                        if (currentQuantity > 1) {
-                            cart.put(itemId, currentQuantity - 1);
-                        } else {
-                            cart.remove(itemId);
-                        }
-                        break;
-                    case DELETE:
-                        cart.remove(itemId);
-                        break;
-                }
-            })
-            .then();
+    public Mono<Void> updateCartItemQuantity(String sessionId, String itemId, ActionType actionType) {
+        Map<String, Integer> cart = getCart(sessionId);
+        
+        return itemRepository.findById(Long.valueOf(itemId))
+                .flatMap(item -> {
+                    int currentQuantity = cart.getOrDefault(itemId, 0);
+                    int newQuantity;
+                    
+                    switch (actionType) {
+                        case PLUS:
+                            newQuantity = currentQuantity + 1;
+                            cart.put(itemId, newQuantity);
+                            break;
+                        case MINUS:
+                            newQuantity = Math.max(0, currentQuantity - 1);
+                            if (newQuantity == 0) {
+                                cart.remove(itemId);
+                            } else {
+                                cart.put(itemId, newQuantity);
+                            }
+                            break;
+                        default:
+                            return Mono.empty();
+                    }
+                    
+                    return Mono.empty();
+                });
     }
 
     @Override
     public Mono<Double> getCartTotal(String sessionId) {
         Map<String, Integer> cart = getCart(sessionId);
         
-        List<Mono<Double>> itemTotals = new ArrayList<>();
-        
+        List<Mono<Double>> prices = new ArrayList<>();
         for (Map.Entry<String, Integer> entry : cart.entrySet()) {
             String itemId = entry.getKey();
             int quantity = entry.getValue();
             
-            Mono<Double> itemTotal = itemRepository.findById(Long.parseLong(itemId))
-                    .map(item -> item.getPrice() * quantity)
-                    .defaultIfEmpty(0.0);
-            
-            itemTotals.add(itemTotal);
+            Mono<Double> priceMono = itemRepository.findById(Long.valueOf(itemId))
+                    .map(item -> item.getPrice() * quantity);
+            prices.add(priceMono);
         }
         
-        return Mono.zip(itemTotals, objects -> {
+        return Mono.zip(prices, objects -> {
                     double total = 0.0;
-                    for (Object object : objects) {
-                        if (object instanceof Double) {
-                            total += (Double) object;
-                        }
+                    for (Object obj : objects) {
+                        total += (Double) obj;
                     }
                     return total;
                 })
+                .onErrorReturn(0.0)
                 .defaultIfEmpty(0.0);
     }
 
     @Override
-    public Mono<Void> clearCart(String sessionId) {
-        return Mono.fromRunnable(() -> getCart(sessionId).clear());
+    public Mono<Boolean> isCartEmpty(String sessionId) {
+        Map<String, Integer> cart = getCart(sessionId);
+        return Mono.just(cart.isEmpty());
     }
 
     @Override
-    public Mono<Boolean> isCartEmpty(String sessionId) {
-        return Mono.just(getCart(sessionId).isEmpty());
+    public Mono<Void> clearCart(String sessionId) {
+        Map<String, Integer> cart = getCart(sessionId);
+        cart.clear();
+        return Mono.empty();
     }
-
 }

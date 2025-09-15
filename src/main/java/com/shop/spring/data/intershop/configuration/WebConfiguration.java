@@ -2,15 +2,19 @@ package com.shop.spring.data.intershop.configuration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.ResponseCookie;
 import org.springframework.web.reactive.config.EnableWebFlux;
 import org.springframework.web.reactive.config.ResourceHandlerRegistry;
 import org.springframework.web.reactive.config.ViewResolverRegistry;
 import org.springframework.web.reactive.config.WebFluxConfigurer;
+import org.springframework.web.server.session.CookieWebSessionIdResolver;
+import org.springframework.web.server.session.WebSessionIdResolver;
 import org.thymeleaf.spring6.SpringWebFluxTemplateEngine;
 import org.thymeleaf.spring6.templateresolver.SpringResourceTemplateResolver;
 import org.thymeleaf.spring6.view.reactive.ThymeleafReactiveViewResolver;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 
 @Configuration
 @EnableWebFlux
@@ -50,7 +54,15 @@ public class WebConfiguration implements WebFluxConfigurer {
     public ThymeleafReactiveViewResolver thymeleafReactiveViewResolver() {
         ThymeleafReactiveViewResolver resolver = new ThymeleafReactiveViewResolver();
         resolver.setTemplateEngine(templateEngine());
-        resolver.setDefaultCharset(StandardCharsets.UTF_8);
+        resolver.setOrder(1);
+        resolver.setViewNames(new String[]{"*"});
+        return resolver;
+    }
+
+    @Bean
+    public WebSessionIdResolver webSessionIdResolver() {
+        CookieWebSessionIdResolver resolver = new CookieWebSessionIdResolver();
+        resolver.setCookieName("JSESSIONID");
         return resolver;
     }
 }

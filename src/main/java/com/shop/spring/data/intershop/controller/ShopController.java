@@ -63,16 +63,20 @@ public class ShopController {
     @PostMapping("/main/items/{id}")
     public Mono<Void> updateMainItemQuantity(
             @PathVariable String id,
-            @RequestParam String action,
             ServerWebExchange exchange) {
 
-        ActionType actionType = ActionType.valueOf(action.toUpperCase());
-        return getSessionId(exchange)
-                .flatMap(sessionId -> shopService.updateMainItemQuantity(sessionId, id, actionType))
-                .then(Mono.fromRunnable(() -> {
-                    exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.FOUND);
-                    exchange.getResponse().getHeaders().setLocation(URI.create("/main/items"));
-                }));
+        return exchange.getFormData()
+                .flatMap(formData -> {
+                    String action = formData.getFirst("action");
+                    ActionType actionType = ActionType.valueOf(action.toUpperCase());
+
+                    return getSessionId(exchange)
+                            .flatMap(sessionId -> shopService.updateMainItemQuantity(sessionId, id, actionType))
+                            .then(Mono.fromRunnable(() -> {
+                                exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.FOUND);
+                                exchange.getResponse().getHeaders().setLocation(URI.create("/main/items"));
+                            }));
+                });
     }
 
     @GetMapping("/cart/items")
@@ -92,16 +96,20 @@ public class ShopController {
     @PostMapping("/cart/items/{id}")
     public Mono<Void> updateCartItemQuantity(
             @PathVariable String id,
-            @RequestParam String action,
             ServerWebExchange exchange) {
 
-        ActionType actionType = ActionType.valueOf(action.toUpperCase());
-        return getSessionId(exchange)
-                .flatMap(sessionId -> shopService.updateCartItemQuantity(sessionId, id, actionType))
-                .then(Mono.fromRunnable(() -> {
-                    exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.FOUND);
-                    exchange.getResponse().getHeaders().setLocation(URI.create("/cart/items"));
-                }));
+        return exchange.getFormData()
+                .flatMap(formData -> {
+                    String action = formData.getFirst("action");
+                    ActionType actionType = ActionType.valueOf(action.toUpperCase());
+
+                    return getSessionId(exchange)
+                            .flatMap(sessionId -> shopService.updateCartItemQuantity(sessionId, id, actionType))
+                            .then(Mono.fromRunnable(() -> {
+                                exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.FOUND);
+                                exchange.getResponse().getHeaders().setLocation(URI.create("/cart/items"));
+                            }));
+                });
     }
 
     @GetMapping("/items/{id}")
@@ -114,16 +122,20 @@ public class ShopController {
     @PostMapping("/items/{id}")
     public Mono<Void> updateItemQuantity(
             @PathVariable String id,
-            @RequestParam String action,
             ServerWebExchange exchange) {
 
-        ActionType actionType = ActionType.valueOf(action.toUpperCase());
-        return getSessionId(exchange)
-                .flatMap(sessionId -> shopService.updateItemQuantity(sessionId, id, actionType))
-                .then(Mono.fromRunnable(() -> {
-                    exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.FOUND);
-                    exchange.getResponse().getHeaders().setLocation(URI.create("/items/" + id));
-                }));
+        return exchange.getFormData()
+                .flatMap(formData -> {
+                    String action = formData.getFirst("action");
+                    ActionType actionType = ActionType.valueOf(action.toUpperCase());
+
+                    return getSessionId(exchange)
+                            .flatMap(sessionId -> shopService.updateItemQuantity(sessionId, id, actionType))
+                            .then(Mono.fromRunnable(() -> {
+                                exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.FOUND);
+                                exchange.getResponse().getHeaders().setLocation(URI.create("/items/" + id));
+                            }));
+                });
     }
 
     @PostMapping("/buy")
@@ -144,8 +156,9 @@ public class ShopController {
     }
 
     @GetMapping("/orders")
-    public Mono<String> getOrders(Model model) {
-        return shopService.getOrders()
+    public Mono<String> getOrders(Model model, ServerWebExchange exchange) {
+        return getSessionId(exchange)
+                .flatMap(sessionId -> shopService.getOrders(sessionId))
                 .doOnNext(orders -> model.addAttribute("orders", orders))
                 .thenReturn("orders");
     }
