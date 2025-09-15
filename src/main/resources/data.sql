@@ -1,0 +1,33 @@
+-- тест айтем
+INSERT INTO items (id, title, description, price, count, image) VALUES
+(1, 'Ноутбук Dell', 'Мощный ноутбук для работы и игр', 55000.0, 10, 'images/laptop_dell.jpg'),
+(2, 'Смартфон', 'Современный смартфон', 35000.0, 15, 'images/laptop_dell.jpg'),
+(3, 'Планшет', 'планшет', 45000.0, 8, 'images/laptop_dell.jpg'),
+(4, 'Наушники', 'наушники', 15000.0, 20, 'images/laptop_dell.jpg'),
+(5, 'Часы', 'Смарт-часы', 25000.0, 12, 'images/laptop_dell.jpg'),
+(6, 'Телевизор', 'Smart TV', 80000.0, 5, 'images/laptop_dell.jpg'),
+(7, 'Кофемашина', 'кофемашина', 20000.0, 7, 'images/laptop_dell.jpg'),
+(8, 'Пылесос', 'пылесос', 30000.0, 9, 'images/laptop_dell.jpg'),
+(9, 'Фотоаппарат', 'фотоаппарат', 60000.0, 4, 'images/laptop_dell.jpg'),
+(10, 'приставка', 'Последняя модель', 40000.0, 6, 'images/laptop_dell.jpg'),
+(11, 'Книжная полка IKEA(Мы скучаем)', 'книжная полка из натурального дерева', 5000.0, 25, 'images/laptop_dell.jpg'),
+(12, 'велотренажер', 'велотренажер', 35000.0, 3, 'images/laptop_dell.jpg'),
+(13, 'Геймпад', 'геймпад', 4000.0, 30, 'images/laptop_dell.jpg'),
+(14, 'Кресло', 'офисное кресло', 70000.0, 2, 'images/laptop_dell.jpg'),
+(15, 'Колонка', 'Портативная', 8000.0, 18, 'images/laptop_dell.jpg');
+
+-- тест ордер
+INSERT INTO orders (id, order_date) VALUES
+(100, '2025-01-15 10:30:00'),
+(101, '2025-01-16 14:45:00'),
+(102, '2025-01-17 09:15:00'),
+(103, '2025-01-18 16:20:00'),
+(104, '2025-01-19 11:10:00');
+
+-- тест ордер айтем
+INSERT INTO order_items (order_id, item_id, quantity) VALUES
+(100, 1, 1),
+(100, 4, 2),
+(101, 2, 1),
+(102, 3, 1),
+(102, 5, 1);
