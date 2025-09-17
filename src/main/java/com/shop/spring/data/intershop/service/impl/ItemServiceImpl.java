@@ -1,7 +1,6 @@
 package com.shop.spring.data.intershop.service.impl;
 
 import com.shop.spring.data.intershop.model.Item;
-import com.shop.spring.data.intershop.model.enums.ActionType;
 import com.shop.spring.data.intershop.model.enums.SortType;
 import com.shop.spring.data.intershop.repository.ItemRepository;
 import com.shop.spring.data.intershop.service.ItemService;
@@ -25,24 +24,10 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public Mono<List<ItemDto>> getAllItems() {
-        return itemRepository.findAllItems()
-                .map(shopMapper::toItemDto)
-                .collectList();
-    }
-
-    @Override
     public Mono<ItemDto> getItemById(String id) {
         return itemRepository.findById(Long.parseLong(id))
                 .map(shopMapper::toItemDto)
                 .switchIfEmpty(Mono.empty());
-    }
-
-    @Override
-    public Mono<List<ItemDto>> searchItems(String searchQuery) {
-        return itemRepository.findByTitleOrDescriptionContaining(searchQuery)
-                .map(shopMapper::toItemDto)
-                .collectList();
     }
 
     @Override
@@ -72,7 +57,7 @@ public class ItemServiceImpl implements ItemService {
                     int endIndex = Math.min(startIndex + pageSize, items.size());
 
                     if (startIndex >= items.size()) {
-                        return new ArrayList<List<ItemDto>>();
+                        return new ArrayList<>();
                     }
 
                     List<Item> pageItems = items.subList(startIndex, endIndex);
@@ -83,10 +68,5 @@ public class ItemServiceImpl implements ItemService {
 
                     return result;
                 });
-    }
-
-    @Override
-    public Mono<Void> updateItemQuantity(String sessionId, String itemId, ActionType action) {
-        return Mono.error(new UnsupportedOperationException("Use CartService for cart operations"));
     }
 }

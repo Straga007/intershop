@@ -11,10 +11,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebSession;
 import reactor.core.publisher.Mono;
 
 import java.net.URI;
-import java.util.Objects;
 
 @Controller
 public class ShopController {
@@ -26,7 +26,7 @@ public class ShopController {
 
     // get sessionId
     private Mono<String> getSessionId(ServerWebExchange exchange) {
-        return exchange.getSession().map(webSession -> webSession.getId());
+        return exchange.getSession().map(WebSession::getId);
     }
 
     @GetMapping("/")
@@ -43,8 +43,7 @@ public class ShopController {
             @RequestParam(defaultValue = "NO") String sort,
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(defaultValue = "1") int pageNumber,
-            Model model,
-            ServerWebExchange exchange) {
+            Model model) {
 
         model.addAttribute("search", search);
         model.addAttribute("sort", sort);
@@ -68,6 +67,7 @@ public class ShopController {
         return exchange.getFormData()
                 .flatMap(formData -> {
                     String action = formData.getFirst("action");
+                    assert action != null;
                     ActionType actionType = ActionType.valueOf(action.toUpperCase());
 
                     return getSessionId(exchange)
@@ -101,6 +101,7 @@ public class ShopController {
         return exchange.getFormData()
                 .flatMap(formData -> {
                     String action = formData.getFirst("action");
+                    assert action != null;
                     ActionType actionType = ActionType.valueOf(action.toUpperCase());
 
                     return getSessionId(exchange)
@@ -113,7 +114,7 @@ public class ShopController {
     }
 
     @GetMapping("/items/{id}")
-    public Mono<String> getItem(@PathVariable String id, Model model, ServerWebExchange exchange) {
+    public Mono<String> getItem(@PathVariable String id, Model model) {
         return shopService.getItem(id)
                 .doOnNext(item -> model.addAttribute("item", item))
                 .thenReturn("item");
@@ -127,6 +128,7 @@ public class ShopController {
         return exchange.getFormData()
                 .flatMap(formData -> {
                     String action = formData.getFirst("action");
+                    assert action != null;
                     ActionType actionType = ActionType.valueOf(action.toUpperCase());
 
                     return getSessionId(exchange)
@@ -141,7 +143,7 @@ public class ShopController {
     @PostMapping("/buy")
     public Mono<Void> buy(ServerWebExchange exchange) {
         return getSessionId(exchange)
-                .flatMap(sessionId -> shopService.buy(sessionId))
+                .flatMap(shopService::buy)
                 .flatMap(orderId -> {
                     if (orderId != null) {
                         exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.FOUND);
@@ -158,7 +160,7 @@ public class ShopController {
     @GetMapping("/orders")
     public Mono<String> getOrders(Model model, ServerWebExchange exchange) {
         return getSessionId(exchange)
-                .flatMap(sessionId -> shopService.getOrders(sessionId))
+                .flatMap(shopService::getOrders)
                 .doOnNext(orders -> model.addAttribute("orders", orders))
                 .thenReturn("orders");
     }

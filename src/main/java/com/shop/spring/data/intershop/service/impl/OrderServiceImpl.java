@@ -57,7 +57,8 @@ public class OrderServiceImpl implements OrderService {
                                     
                                     orderItemMonos.add(orderItemRepository.save(orderItem));
                                 }
-                                
+
+                                assert savedOrder.getId() != null;
                                 return Mono.when(orderItemMonos)
                                         .then(cartService.clearCart(sessionId))
                                         .thenReturn(savedOrder.getId());

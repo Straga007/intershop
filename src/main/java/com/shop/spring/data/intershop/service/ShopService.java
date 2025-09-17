@@ -28,15 +28,15 @@ public class ShopService {
         return itemService.getMainItems(search, sort, pageSize, pageNumber);
     }
 
-    public Mono<Void> updateMainItemQuantity(String sessionId, String itemId, ActionType action) {
+    public Mono<Void> updateMainItemQuantity(String ignoredSessionId, String itemId, ActionType action) {
         return cartService.updateCartItemQuantity(SHARED_SESSION_ID, itemId, action);
     }
 
-    public Mono<List<ItemDto>> getCartItems(String sessionId) {
+    public Mono<List<ItemDto>> getCartItems(String ignoredSessionId) {
         return cartService.getCartItems(SHARED_SESSION_ID);
     }
 
-    public Mono<Void> updateCartItemQuantity(String sessionId, String itemId, ActionType action) {
+    public Mono<Void> updateCartItemQuantity(String ignoredSessionId, String itemId, ActionType action) {
         return cartService.updateCartItemQuantity(SHARED_SESSION_ID, itemId, action);
     }
 
@@ -44,15 +44,15 @@ public class ShopService {
         return itemService.getItemById(id);
     }
 
-    public Mono<Void> updateItemQuantity(String sessionId, String itemId, ActionType action) {
+    public Mono<Void> updateItemQuantity(String ignoredSessionId, String itemId, ActionType action) {
         return cartService.updateCartItemQuantity(SHARED_SESSION_ID, itemId, action);
     }
 
-    public Mono<String> buy(String sessionId) {
+    public Mono<String> buy(String ignoredSessionId) {
         return orderService.createOrder(SHARED_SESSION_ID);
     }
 
-    public Mono<List<OrderDto>> getOrders(String sessionId) {
+    public Mono<List<OrderDto>> getOrders(String ignoredSessionId) {
         return orderService.getAllOrders();
     }
 

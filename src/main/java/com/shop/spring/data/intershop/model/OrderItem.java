@@ -23,9 +23,4 @@ public class OrderItem {
 
     public OrderItem() {
     }
-
-    public OrderItem(Long itemId, int quantity) {
-        this.itemId = itemId;
-        this.quantity = quantity;
-    }
 }

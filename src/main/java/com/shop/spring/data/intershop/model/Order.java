@@ -28,7 +28,4 @@ public class Order implements Persistable<String> {
         return true;
     }
 
-    public double getTotalSum() {
-        return 0.0;
-    }
 }

@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,7 +28,7 @@ public class CartServiceImpl implements CartService {
     }
 
     //корзина по sessionId
-    private Map<String, Integer> getCart(String sessionId) {
+    private Map<String, Integer> getCart(String ignoredSessionId) {
         return sharedCart;
     }
 
