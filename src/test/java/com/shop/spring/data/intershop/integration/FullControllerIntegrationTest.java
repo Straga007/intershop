@@ -17,7 +17,7 @@ public class FullControllerIntegrationTest {
     private WebTestClient webTestClient;
 
     @Test
-    void testFullUserJourney() throws Exception {
+    void testFullUserJourney() {
         webTestClient.get()
                 .uri("/")
                 .exchange()

@@ -17,7 +17,7 @@ public class WebConfigurationTest {
     private WebTestClient webTestClient;
 
     @Test
-    void testStaticResourceAccessIsNotTrue() throws Exception {
+    void testStaticResourceAccessIsNotTrue() {
         webTestClient.get()
                 .uri("/static/css/main.css")
                 .exchange()
