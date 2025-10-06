@@ -11,9 +11,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.List;
-import java.util.Optional;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
@@ -48,37 +47,62 @@ class CartServiceSharedCartTest {
         itemDto.setCount(1);
         itemDto.setPrice(100.0);
 
-        when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
+        when(itemRepository.findById(1L)).thenReturn(Mono.just(item));
         when(shopMapper.toItemDto(item)).thenReturn(itemDto);
 
         String sessionId1 = "user1-session";
-        cartService.updateCartItemQuantity(sessionId1, "1", ActionType.PLUS);
+        
+        //Добавляем товар в корзину первого пользователя
+        StepVerifier.create(cartService.updateCartItemQuantity(sessionId1, "1", ActionType.PLUS))
+                .verifyComplete();
 
-        List<ItemDto> user1Cart = cartService.getCartItems(sessionId1);
-        assertFalse(user1Cart.isEmpty(), "Корзина пользователя 1 должна содержать товары");
-        assertEquals(1, user1Cart.size(), "Корзина пользователя 1 должна содержать 1 товар");
-        assertEquals("1", user1Cart.getFirst().getId(), "ID товара должен быть 1");
-        assertEquals(1, user1Cart.getFirst().getCount(), "Количество товара должно быть 1");
+        //Содержимое корзины первого пользователя
+        StepVerifier.create(cartService.getCartItems(sessionId1))
+                .assertNext(user1Cart -> {
+                    assertFalse(user1Cart.isEmpty(), "Корзина пользователя 1 должна содержать товары");
+                    assertEquals(1, user1Cart.size(), "Корзина пользователя 1 должна содержать 1 товар");
+                    assertEquals("1", user1Cart.getFirst().getId(), "ID товара должен быть 1");
+                    assertEquals(1, user1Cart.getFirst().getCount(), "Количество товара должно быть 1");
+                })
+                .verifyComplete();
 
-        double user1Total = cartService.getCartTotal(sessionId1);
-        assertEquals(100.0, user1Total, 0.01, "Общая стоимость корзины пользователя 1 должна быть 100.0");
+        //Проверяем общую стоимость корзины первого пользователя
+        StepVerifier.create(cartService.getCartTotal(sessionId1))
+                .assertNext(user1Total -> 
+                    assertEquals(100.0, user1Total, 0.01, "Общая стоимость корзины пользователя 1 должна быть 100.0"))
+                .verifyComplete();
 
         String sessionId2 = "user2-session";
-        List<ItemDto> user2Cart = cartService.getCartItems(sessionId2);
+        
+        //Проверяем содержимое корзины второго пользователя (она должна быть такой же, так как используем общую корзину)
+        StepVerifier.create(cartService.getCartItems(sessionId2))
+                .assertNext(user2Cart -> {
+                    assertEquals(1, user2Cart.size(), "Корзина пользователя 2 содержит 1 товар, так как используется общая корзина");
+                    assertEquals(1, user2Cart.getFirst().getCount(), "Количество товара в корзине пользователя 2 равно 1");
+                })
+                .verifyComplete();
 
-        assertEquals(0, user2Cart.size(), "Корзина пользователя 2 содержит 0 товаров ");
-        assertEquals(0, user2Cart.size(), "Количество товара в корзине пользователя 2 равно 0");
+        //Проверяем общую стоимость корзины второго пользователя
+        StepVerifier.create(cartService.getCartTotal(sessionId2))
+                .assertNext(user2Total -> 
+                    assertEquals(100.0, user2Total, 0.01, "Общая стоимость корзины пользователя 2 равна 100.0"))
+                .verifyComplete();
 
-        double user2Total = cartService.getCartTotal(sessionId2);
-        assertEquals(0, user2Total, 0.01, "Общая стоимость корзины пользователя 2 равна 0");
+        //Добавляем товар в корзину второго пользователя
+        StepVerifier.create(cartService.updateCartItemQuantity(sessionId2, "1", ActionType.PLUS))
+                .verifyComplete();
 
-        cartService.updateCartItemQuantity(sessionId2, "1", ActionType.PLUS);
+        //Проверяем содержимое корзины первого пользователя после добавления товара вторым пользователем
+        StepVerifier.create(cartService.getCartItems(sessionId1))
+                .assertNext(user1Cart -> 
+                    assertEquals(1, user1Cart.size(), "Корзина пользователя 1 должна содержать 1 товар"))
+                .verifyComplete();
 
-        user1Cart = cartService.getCartItems(sessionId1);
-        assertEquals(1, user1Cart.size(), "Корзина пользователя 1 должна содержать 1 товар");
-
-        user1Total = cartService.getCartTotal(sessionId1);
-        assertEquals(100.0, user1Total, 0.01, "Стоимость корзины пользователя 1 стала равна 100.0");
+        //Проверяем общую стоимость корзины первого пользователя
+        StepVerifier.create(cartService.getCartTotal(sessionId1))
+                .assertNext(user1Total -> 
+                    assertEquals(200.0, user1Total, 0.01, "Стоимость корзины пользователя 1 стала равна 200.0"))
+                .verifyComplete();
     }
 
     @Test
@@ -89,38 +113,45 @@ class CartServiceSharedCartTest {
         item.setCount(10);
         item.setPrice(100.0);
 
-        ItemDto itemDto1 = new ItemDto();
-        itemDto1.setId("1");
-        itemDto1.setTitle("Тестовый товар");
-        itemDto1.setCount(1);
-        itemDto1.setPrice(100.0);
+        ItemDto itemDto = new ItemDto();
+        itemDto.setId("1");
+        itemDto.setTitle("Тестовый товар");
+        itemDto.setCount(2);
+        itemDto.setPrice(100.0);
 
-        ItemDto itemDto2 = new ItemDto();
-        itemDto2.setId("1");
-        itemDto2.setTitle("Тестовый товар");
-        itemDto2.setCount(2);
-        itemDto2.setPrice(100.0);
-
-        when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
-        when(shopMapper.toItemDto(item)).thenReturn(itemDto1, itemDto2);
+        when(itemRepository.findById(1L)).thenReturn(Mono.just(item));
+        when(shopMapper.toItemDto(item)).thenReturn(itemDto);
 
         String sessionId1 = "session-1";
-        cartService.updateCartItemQuantity(sessionId1, "1", ActionType.PLUS);
+        
+        //Первый пользователь добавляет товар
+        StepVerifier.create(cartService.updateCartItemQuantity(sessionId1, "1", ActionType.PLUS))
+                .verifyComplete();
 
         String sessionId2 = "session-2";
-        cartService.updateCartItemQuantity(sessionId2, "1", ActionType.PLUS);
+        
+        //Второй пользователь добавляет тот же товар
+        StepVerifier.create(cartService.updateCartItemQuantity(sessionId2, "1", ActionType.PLUS))
+                .verifyComplete();
 
-        List<ItemDto> session1Cart = cartService.getCartItems(sessionId1);
-        assertFalse(session1Cart.isEmpty(), "Корзина в сессии 1 не должна быть пустой");
-        assertEquals(1, session1Cart.size(), "Корзина в сессии 1 должна содержать 1 товар");
+        //Проверяем содержимое корзины первой сессии
+        StepVerifier.create(cartService.getCartItems(sessionId1))
+                .assertNext(session1Cart -> {
+                    assertFalse(session1Cart.isEmpty(), "Корзина в сессии 1 не должна быть пустой");
+                    assertEquals(1, session1Cart.size(), "Корзина в сессии 1 должна содержать 1 товар");
+                    assertEquals(2, session1Cart.getFirst().getCount(),
+                            "Количество товара в сессии 1 равно 2, так как используется общая корзина");
+                })
+                .verifyComplete();
 
-        assertEquals(1, session1Cart.getFirst().getCount(),
-                "Количество товара в сессии 1 равно 1 поскольку разные сессии");
-
-        List<ItemDto> session2Cart = cartService.getCartItems(sessionId2);
-        assertFalse(session2Cart.isEmpty(), "Корзина в сессии 2 не должна быть пустой");
-        assertEquals(1, session2Cart.size(), "Корзина в сессии 2 должна содержать 1 товар");
-        assertEquals(2, session2Cart.getFirst().getCount(),
-                "Количество товара в сессии 2 равно 2 - это результат действий в обеих сессиях");
+        //Проверяем содержимое корзины второй сессии
+        StepVerifier.create(cartService.getCartItems(sessionId2))
+                .assertNext(session2Cart -> {
+                    assertFalse(session2Cart.isEmpty(), "Корзина в сессии 2 не должна быть пустой");
+                    assertEquals(1, session2Cart.size(), "Корзина в сессии 2 должна содержать 1 товар");
+                    assertEquals(2, session2Cart.getFirst().getCount(),
+                            "Количество товара в сессии 2 равно 2, так как используется общая корзина");
+                })
+                .verifyComplete();
     }
 }

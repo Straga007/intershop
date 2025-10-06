@@ -13,11 +13,6 @@ public class OrderDto {
     public OrderDto() {
     }
 
-    public OrderDto(String id, List<ItemDto> items) {
-        this.id = id;
-        this.items = items;
-    }
-
     public double totalSum() {
         return items.stream()
                 .mapToDouble(item -> item.getPrice() * item.getCount())

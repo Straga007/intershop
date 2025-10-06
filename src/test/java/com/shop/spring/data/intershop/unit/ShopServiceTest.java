@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
 import java.util.List;
 
@@ -55,15 +57,18 @@ class ShopServiceTest {
         List<Item> mockItems = List.of(item);
         List<ItemDto> mockItemDtos = List.of(itemDto);
 
-        when(itemRepository.findByTitleOrDescriptionContaining("ноутбук")).thenReturn(mockItems);
+        when(itemRepository.findByTitleOrDescriptionContaining("ноутбук")).thenReturn(Flux.fromIterable(mockItems));
         when(shopMapper.toItemDtos(mockItems)).thenReturn(mockItemDtos);
 
-        List<List<ItemDto>> result = itemService.getMainItems("ноутбук", SortType.NO, 10, 1);
-
-        assertNotNull(result);
-        assertFalse(result.isEmpty());
-        assertEquals(1, result.getFirst().size());
-        assertEquals("Ноутбук", result.getFirst().getFirst().getTitle());
+        //Проверяем получение товаров с поиском
+        StepVerifier.create(itemService.getMainItems("ноутбук", SortType.NO, 10, 1))
+                .assertNext(result -> {
+                    assertNotNull(result);
+                    assertFalse(result.getFirst().isEmpty());
+                    assertEquals(1, result.getFirst().size());
+                    assertEquals("Ноутбук", result.getFirst().getFirst().getTitle());
+                })
+                .verifyComplete();
 
         verify(itemRepository).findByTitleOrDescriptionContaining("ноутбук");
         verify(shopMapper).toItemDtos(mockItems);

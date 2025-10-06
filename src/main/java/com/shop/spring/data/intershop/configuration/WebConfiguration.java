@@ -1,50 +1,66 @@
 package com.shop.spring.data.intershop.configuration;
 
-import jakarta.servlet.ServletContext;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
-import org.springframework.web.multipart.MultipartResolver;
-import org.springframework.web.multipart.support.StandardServletMultipartResolver;
-import org.springframework.web.servlet.config.annotation.EnableWebMvc;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.thymeleaf.spring6.SpringTemplateEngine;
-import org.thymeleaf.spring6.view.ThymeleafViewResolver;
+import org.springframework.web.reactive.config.EnableWebFlux;
+import org.springframework.web.reactive.config.ResourceHandlerRegistry;
+import org.springframework.web.reactive.config.ViewResolverRegistry;
+import org.springframework.web.reactive.config.WebFluxConfigurer;
+import org.springframework.web.server.session.CookieWebSessionIdResolver;
+import org.springframework.web.server.session.WebSessionIdResolver;
+import org.thymeleaf.spring6.SpringWebFluxTemplateEngine;
+import org.thymeleaf.spring6.templateresolver.SpringResourceTemplateResolver;
+import org.thymeleaf.spring6.view.reactive.ThymeleafReactiveViewResolver;
+
+import java.nio.charset.StandardCharsets;
 
 @Configuration
-@EnableWebMvc
-@ComponentScan("com.shop.spring.data.intershop")
-@PropertySource("classpath:application.properties")
-public class WebConfiguration implements WebMvcConfigurer {
-
-    @Value("${app.base-url:}")
-    private String baseUrl;
+@EnableWebFlux
+public class WebConfiguration implements WebFluxConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/static/**")
                 .addResourceLocations("classpath:/static/");
         registry.addResourceHandler("/images/**")
-                .addResourceLocations("classpath:/static/images/", "file:uploads/images/");
+                .addResourceLocations("classpath:/static/images/");
+    }
+
+    @Override
+    public void configureViewResolvers(ViewResolverRegistry registry) {
+        registry.viewResolver(thymeleafReactiveViewResolver());
     }
 
     @Bean
-    public MultipartResolver multipartResolver() {
-        return new StandardServletMultipartResolver();
+    public SpringResourceTemplateResolver templateResolver() {
+        SpringResourceTemplateResolver resolver = new SpringResourceTemplateResolver();
+        resolver.setPrefix("classpath:/templates/");
+        resolver.setSuffix(".html");
+        resolver.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        resolver.setCacheable(false);
+        return resolver;
     }
 
     @Bean
-    public ThymeleafViewResolver thymeleafViewResolver(
-            SpringTemplateEngine templateEngine,
-            ServletContext servletContext) {
-        ThymeleafViewResolver resolver = new ThymeleafViewResolver();
-        resolver.setTemplateEngine(templateEngine);
-        resolver.setCharacterEncoding("UTF-8");
-        resolver.addStaticVariable("baseUrl", baseUrl);
+    public SpringWebFluxTemplateEngine templateEngine() {
+        SpringWebFluxTemplateEngine engine = new SpringWebFluxTemplateEngine();
+        engine.setTemplateResolver(templateResolver());
+        return engine;
+    }
 
+    @Bean
+    public ThymeleafReactiveViewResolver thymeleafReactiveViewResolver() {
+        ThymeleafReactiveViewResolver resolver = new ThymeleafReactiveViewResolver();
+        resolver.setTemplateEngine(templateEngine());
+        resolver.setOrder(1);
+        resolver.setViewNames(new String[]{"*"});
+        return resolver;
+    }
+
+    @Bean
+    public WebSessionIdResolver webSessionIdResolver() {
+        CookieWebSessionIdResolver resolver = new CookieWebSessionIdResolver();
+        resolver.setCookieName("JSESSIONID");
         return resolver;
     }
 }

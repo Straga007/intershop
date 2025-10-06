@@ -3,26 +3,25 @@ package com.shop.spring.data.intershop.integration;
 import com.shop.spring.data.intershop.IntershopApplication;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.web.servlet.MockMvc;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.test.web.reactive.server.WebTestClient;
 
 @SpringBootTest(classes = IntershopApplication.class)
-@AutoConfigureMockMvc
+@AutoConfigureWebTestClient
 @TestPropertySource(locations = "classpath:application-test.properties")
 public class WebConfigurationTest {
 
     @Autowired
-    private MockMvc mockMvc;
+    private WebTestClient webTestClient;
 
     @Test
-    void testStaticResourceAccessIsNotTrue() throws Exception {
-        mockMvc.perform(get("/static/css/main.css"))
-                .andExpect(status().isNotFound());
+    void testStaticResourceAccessIsNotTrue() {
+        webTestClient.get()
+                .uri("/static/css/main.css")
+                .exchange()
+                .expectStatus().isNotFound();
     }
 
 }
