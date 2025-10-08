@@ -1,0 +1,34 @@
+plugins {
+    id 'org.openapi.generator' version '6.6.0'
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    
+    // Зависимости для OpenAPI
+    implementation 'io.swagger.core.v3:swagger-annotations:2.2.15'
+    implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
+}
+
+openApiGenerate {
+    generatorName = "spring"
+    inputSpec = "$rootDir/payment-api.yaml"
+    outputDir = "$buildDir/generated"
+    apiPackage = "com.shop.payment.api"
+    modelPackage = "com.shop.payment.model"
+    configOptions = [
+        reactive: "true",
+        useSpringBoot3: "true",
+        interfaceOnly: "true"
+    ]
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs += "$buildDir/generated/src/main/java"
+        }
+    }
+}
+
+compileJava.dependsOn tasks.openApiGenerate

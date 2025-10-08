@@ -1,0 +1,22 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+  
+  main-app:
+    build: ./main-app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+      - payment-service
+    environment:
+      - SPRING_REDIS_HOST=redis
+      - PAYMENT_SERVICE_URL=http://payment-service:8081/api/v1
+  
+  payment-service:
+    build: ./payment-service
+    ports:
+      - "8081:8081"
