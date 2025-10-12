@@ -1,5 +1,6 @@
 package com.shop.spring.data.intershop.controller;
 
+import com.shop.main.client.api.DefaultApi;
 import com.shop.spring.data.intershop.model.Paging;
 import com.shop.spring.data.intershop.model.enums.ActionType;
 import com.shop.spring.data.intershop.model.enums.SortType;
@@ -24,7 +25,7 @@ import java.util.List;
 public class ShopController {
     private final ShopService shopService;
 
-    public ShopController(ShopService shopService) {
+    public ShopController(ShopService shopService, DefaultApi paymentsApi) {
         this.shopService = shopService;
     }
 
@@ -193,12 +194,14 @@ public class ShopController {
     
     @GetMapping("/api/balance")
     public Mono<ResponseEntity<Double>> getBalance() {
-        System.out.println("Вызов метода getBalance в контроллере");
         return shopService.checkBalance()
-                .map(balance -> {
-                    System.out.println("Получен баланс в контроллере: " + balance);
-                    return ResponseEntity.ok(balance);
-                })
+                .map(ResponseEntity::ok)
                 .onErrorReturn(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
+    }
+    
+    @PostMapping("/admin/cache/clear")
+    public String clearCache() {
+        shopService.clearCache();
+        return "Cache cleared successfully";
     }
 }

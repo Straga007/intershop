@@ -14,7 +14,7 @@ services:
       - payment-service
     environment:
       - SPRING_REDIS_HOST=redis
-      - PAYMENT_SERVICE_URL=http://payment-service:8081/api/v1
+      - PAYMENT_SERVICE_URL=http://payment-service:8081
   
   payment-service:
     build: ./payment-service

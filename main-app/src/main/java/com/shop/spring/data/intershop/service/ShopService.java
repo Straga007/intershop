@@ -69,9 +69,10 @@ public class ShopService {
     }
     
     public Mono<Double> checkBalance() {
-        System.out.println("Вызов метода checkBalance в ShopService");
-        return orderService.checkBalance()
-                .doOnNext(balance -> System.out.println("Получен баланс из OrderService: " + balance))
-                .doOnError(throwable -> System.out.println("Ошибка в ShopService при получении баланса: " + throwable.getMessage()));
+        return orderService.checkBalance();
+    }
+    
+    public Mono<Void> clearCache() {
+        return itemService.clearCache();
     }
 }

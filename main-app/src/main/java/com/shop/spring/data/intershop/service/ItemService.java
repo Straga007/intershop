@@ -9,4 +9,5 @@ import java.util.List;
 public interface ItemService {
     Mono<ItemDto> getItemById(String id);
     Mono<List<List<ItemDto>>> getMainItems(String search, SortType sort, int pageSize, int pageNumber);
+    Mono<Void> clearCache();
 }

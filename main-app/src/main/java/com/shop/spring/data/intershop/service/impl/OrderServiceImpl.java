@@ -51,11 +51,9 @@ public class OrderServiceImpl implements OrderService {
                     return paymentsApi.processPayment(paymentRequest);
                 })
                 .flatMap(response -> {
-                    // Если платеж успешен, создаем заказ
                     return createOrderInDatabase(sessionId);
                 })
                 .onErrorResume(throwable -> {
-                    // Если платеж неуспешен, возвращаем ошибку
                     return Mono.error(new RuntimeException("Payment failed: " + throwable.getMessage()));
                 });
     }
@@ -190,44 +188,8 @@ public class OrderServiceImpl implements OrderService {
     }
     
     public Mono<Double> checkBalance() {
-        System.out.println("Вызов метода checkBalance в OrderServiceImpl");
-        
-        if (paymentsApi == null) {
-            System.out.println("paymentsApi равен null");
-            return Mono.error(new IllegalStateException("paymentsApi is null"));
-        }
-        
-        System.out.println("Вызов paymentsApi.getBalance()");
-        System.out.println("ApiClient basePath: " + paymentsApi.getApiClient().getBasePath());
-        
-        // Добавляем логирование перед вызовом
-        System.out.println("Подготовка к вызову getBalance()");
-        Mono<com.shop.main.client.model.BalanceResponse> responseMono = paymentsApi.getBalance();
-        System.out.println("Получен Mono<BalanceResponse>");
-        
-        // Добавляем логирование подписки
-        System.out.println("Подписываемся на Mono<BalanceResponse>");
-        
-        return responseMono
-                .timeout(Duration.ofSeconds(10))
-                .doOnNext(response -> {
-                    System.out.println("Получен ответ от сервиса платежей: " + response);
-                    System.out.println("Баланс из ответа: " + response.getBalance());
-                })
-                .map(response -> {
-                    Double balance = response.getBalance();
-                    System.out.println("Преобразуем ответ в баланс: " + balance);
-                    return balance;
-                })
-                .doOnSuccess(balance -> System.out.println("Успешно получен баланс: " + balance))
-                .doOnError(throwable -> {
-                    System.out.println("Ошибка при получении баланса: " + throwable.getMessage());
-                    System.out.println("Тип ошибки: " + throwable.getClass().getName());
-                    throwable.printStackTrace();
-                })
-                .onErrorResume(throwable -> {
-                    System.out.println("Обработка ошибки, возвращаем 0.0");
-                    return Mono.just(0.0);
-                });
+        return paymentsApi.getBalance()
+                .map(BalanceResponse::getBalance)
+                .onErrorReturn(0.0);
     }
 }
