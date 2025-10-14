@@ -3,16 +3,13 @@ package com.shop.spring.data.intershop.integration;
 import com.shop.spring.data.intershop.IntershopApplication;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.web.servlet.MockMvc;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.test.web.reactive.server.WebTestClient;
 
 @SpringBootTest(classes = IntershopApplication.class)
-@AutoConfigureMockMvc
+@AutoConfigureWebTestClient
 @TestPropertySource(locations = "classpath:application-test.properties",
     properties = {
         "spring.sql.init.mode=never",
@@ -21,17 +18,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class WebConfigurationTest {
 
     @Autowired
-    private MockMvc mockMvc;
+    private WebTestClient webTestClient;
 
     @Test
-    void testStaticResourceAccessIsBlockedViaStaticPath() throws Exception {
-        mockMvc.perform(get("/static/css/main.css"))
-                .andExpect(status().isNotFound());
+    void testStaticResourceAccessIsAllowedViaStaticPath() throws Exception {
+        webTestClient.get()
+                .uri("/static/images/laptop_dell.jpg")
+                .exchange()
+                .expectStatus().isOk();
     }
 
     @Test
-    void testStaticResourceAccessIsAllowedViaRootPath() throws Exception {
-        mockMvc.perform(get("/css/main.css"))
-                .andExpect(status().isOk());
+    void testImagesResourceAccessIsAllowed() throws Exception {
+        webTestClient.get()
+                .uri("/images/laptop_dell.jpg")
+                .exchange()
+                .expectStatus().isOk();
     }
 }
