@@ -7,7 +7,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
+
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -16,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestPropertySource(properties = {
     "spring.cache.type=redis"
 })
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 class RedisCacheIntegrationTest {
 
     @Autowired
@@ -23,24 +27,19 @@ class RedisCacheIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // Очищаем кэш перед каждым тестом
-        redisTemplate.getConnectionFactory().getConnection().flushAll();
+        Objects.requireNonNull(redisTemplate.getConnectionFactory()).getConnection().flushAll();
     }
 
     @Test
     void testRedisConnection() {
-        // Проверяем, что RedisTemplate доступен
         assertThat(redisTemplate).isNotNull();
 
-        // Записываем значение в Redis
         redisTemplate.opsForValue().set("testKey", "testValue");
 
-        // Проверяем, что значение записано
         Object value = redisTemplate.opsForValue().get("testKey");
         assertThat(value).isEqualTo("testValue");
 
-        // Проверяем размер базы данных
-        Long dbSize = redisTemplate.getConnectionFactory().getConnection().dbSize();
+        Long dbSize = Objects.requireNonNull(redisTemplate.getConnectionFactory()).getConnection().dbSize();
         assertThat(dbSize).isPositive();
     }
 }

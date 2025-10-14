@@ -11,8 +11,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 
-import java.util.Objects;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(classes = IntershopApplication.class)
@@ -21,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
     "spring.cache.type=redis"
 })
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
-class RedisCacheTest {
+class CacheAnnotationsTest {
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
@@ -31,25 +29,32 @@ class RedisCacheTest {
 
     @BeforeEach
     void setUp() {
-        Objects.requireNonNull(redisTemplate.getConnectionFactory()).getConnection().flushAll();
+        redisTemplate.getConnectionFactory().getConnection().flushAll();
     }
 
     @Test
-    void testGetItemWithCache() {
+    void testGetItemByIdCacheable() {
         assertThat(itemService).isNotNull();
 
-        var item = itemService.getItemById("1").block();
-        assertThat(item).isNotNull();
-        assertThat(item.getId()).isEqualTo("1");
+        var result1 = itemService.getItemById("1").block();
+        assertThat(result1).isNotNull();
+        assertThat(result1.getId()).isEqualTo("1");
 
         Boolean hasKey = redisTemplate.hasKey("items::1");
+        assertThat(hasKey).isTrue();
+
+        var result2 = itemService.getItemById("1").block();
+        assertThat(result2).isNotNull();
+        assertThat(result2.getId()).isEqualTo("1");
+
+        hasKey = redisTemplate.hasKey("items::1");
         assertThat(hasKey).isTrue();
     }
 
     @Test
-    void testClearCache() {
-        var item = itemService.getItemById("1").block();
-        assertThat(item).isNotNull();
+    void testClearCacheEvict() {
+        var result = itemService.getItemById("1").block();
+        assertThat(result).isNotNull();
 
         Boolean hasKey = redisTemplate.hasKey("items::1");
         assertThat(hasKey).isTrue();

@@ -1,65 +1,50 @@
 package com.shop.spring.data.intershop.cash.redis;
 
-import com.shop.spring.data.intershop.model.Item;
-import com.shop.spring.data.intershop.repository.ItemRepository;
-import com.shop.spring.data.intershop.service.impl.ItemServiceImpl;
-import com.shop.spring.data.intershop.view.dto.ItemDto;
-import com.shop.spring.data.intershop.view.mapper.ShopMapper;
-import org.junit.jupiter.api.BeforeEach;
+import com.shop.spring.data.intershop.IntershopApplication;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import reactor.core.publisher.Mono;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.TestPropertySource;
+
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
 
+@SpringBootTest(classes = IntershopApplication.class)
+@Import(RedisTestConfig.class)
+@TestPropertySource(properties = {
+    "spring.cache.type=redis"
+})
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 class SimpleRedisCacheTest {
 
-    @Mock
-    private ItemRepository itemRepository;
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
 
-    @Mock
-    private ShopMapper shopMapper;
+    @Test
+    void testRedisTemplateOperations() {
+        assertThat(redisTemplate).isNotNull();
 
-    private ItemServiceImpl itemService;
+        String key = "test:simple:key";
+        String value = "test value";
 
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-        itemService = new ItemServiceImpl(itemRepository, shopMapper);
+        redisTemplate.opsForValue().set(key, value);
+
+        Object retrievedValue = redisTemplate.opsForValue().get(key);
+        assertThat(retrievedValue).isEqualTo(value);
+
+        redisTemplate.delete(key);
+
+        Boolean hasKey = redisTemplate.hasKey(key);
+        assertThat(hasKey).isFalse();
     }
 
     @Test
-    void testCacheWorks() {
-        // Создаем тестовый объект
-        Item item = new Item();
-        item.setId(1L);
-        item.setTitle("Тестовый товар");
-        item.setPrice(100.0);
-        item.setCount(10);
-
-        ItemDto itemDto = new ItemDto();
-        itemDto.setId("1");
-        itemDto.setTitle("Тестовый товар");
-        itemDto.setPrice(100.0);
-        itemDto.setCount(10);
-
-        // Настраиваем моки
-        when(itemRepository.findById(1L)).thenReturn(Mono.just(item));
-        when(shopMapper.toItemDto(item)).thenReturn(itemDto);
-
-        // Первый вызов - должен вызвать репозиторий
-        ItemDto result1 = itemService.getItemById("1").block();
-        verify(itemRepository, times(1)).findById(1L);
-
-        // Второй вызов - в unit-тесте также вызовет репозиторий,
-        // так как кэширование не работает без контекста Spring
-        ItemDto result2 = itemService.getItemById("1").block();
-        verify(itemRepository, times(2)).findById(1L); // Увеличилось до 2
-
-        // Проверяем, что результаты совпадают
-        assertThat(result1).isEqualTo(result2);
-        assertThat(result1.getTitle()).isEqualTo("Тестовый товар");
+    void testRedisConnection() {
+        Long dbSize = Objects.requireNonNull(redisTemplate.getConnectionFactory()).getConnection().dbSize();
+        assertThat(dbSize).isNotNull();
     }
 }

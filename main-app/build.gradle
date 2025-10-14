@@ -32,6 +32,20 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+test {
+    //Пулл тестов
+    maxParallelForks = 1
+    
+    systemProperties = [
+        'junit.jupiter.execution.parallel.enabled': 'false',
+        'spring.test.context.cache.maxSize': '1'
+    ]
+    
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
+
 openApiGenerate {
     generatorName = "java"
     inputSpec = "$rootDir/payment-api.yaml"
