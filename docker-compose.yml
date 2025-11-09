@@ -20,3 +20,15 @@ services:
     build: ./payment-service
     ports:
       - "8081:8081"
+
+  keycloak:
+    image: keycloak/keycloak:latest
+    ports:
+      - "8180:8080"
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+    volumes:
+      - ./keycloak/application.yml:/opt/keycloak/conf/application.yml
+    command:
+      - start-dev

@@ -1,0 +1,25 @@
+server:
+  port: 8180
+
+spring:
+  security:
+    oauth2:
+      client:
+        provider:
+          keycloak:
+            authorization-uri: http://localhost:8180/realms/master/protocol/openid-connect/auth
+            token-uri: http://localhost:8180/realms/master/protocol/openid-connect/token
+            user-info-uri: http://localhost:8180/realms/master/protocol/openid-connect/userinfo
+            user-name-attribute: sub
+            jwk-set-uri: http://localhost:8180/realms/master/protocol/openid-connect/certs
+        registration:
+          keycloak:
+            authorizationGrantType: authorization_code
+            provider: keycloak
+            client-id: yandex-test
+            client-secret: CCiB84dv2nJS5sxBjcqTMde5zVloK5E0
+            redirect-uri: '{baseUrl}/{action}/oauth2/code/{registrationId}'
+            scope: openid, profile, email
+        resourceserver:
+          jwt:
+              issuer-uri: http://localhost:8180/realms/master
