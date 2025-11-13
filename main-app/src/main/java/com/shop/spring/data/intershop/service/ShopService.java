@@ -130,22 +130,22 @@ public class ShopService {
     }
 
     public Mono<String> updateCartItemQuantity(String sessionId, String id, ActionType action) {
-        //sessionId будет заменен на userId
+        // В реальной реализации sessionId будет заменен на userId
         return Mono.empty();
     }
 
     public Mono<String> updateItemQuantity(String sessionId, String id, ActionType action) {
-        //sessionId будет заменен на userId
+        // В реальной реализации sessionId будет заменен на userId
         return Mono.empty();
     }
 
     public Mono<String> buy(String sessionId) {
-        //sessionId будет заменен на userId
+        // В реальной реализации sessionId будет заменен на userId
         return Mono.empty();
     }
 
     public Mono<List<Order>> getOrders(String sessionId) {
-        //sessionId будет заменен на userId
+        // В реальной реализации sessionId будет заменен на userId
         return Mono.just(List.of());
     }
 
@@ -154,9 +154,14 @@ public class ShopService {
     }
 
     public Mono<Double> checkBalance() {
+        log.info("checkBalance");
         return paymentsApi.getBalance()
                 .map(BalanceResponse::getBalance)
                 .doOnNext(balance -> log.info("Получен баланс: {}", balance))
-                .doOnError(error -> log.error("Ошибка при получении баланса", error));
+                .doOnError(error -> log.error("Ошибка при получении баланса: ", error))
+                .onErrorResume(error -> {
+                    log.error("Не удалось получить баланс, возвращаем значение по умолчанию 0.0: ", error);
+                    return Mono.just(0.0);
+                });
     }
 }

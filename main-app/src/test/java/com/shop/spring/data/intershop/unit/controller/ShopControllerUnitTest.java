@@ -33,7 +33,7 @@ public class ShopControllerUnitTest {
     private ShopService shopService;
     
     @Mock
-    private DefaultApi paymentsApi;
+    private DefaultApi defaultApi;
 
     @Mock
     private Model model;
@@ -48,10 +48,7 @@ public class ShopControllerUnitTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-        shopController = new ShopController(shopService, paymentsApi);
-        when(exchange.getSession()).thenReturn(Mono.just(session));
-        when(session.getId()).thenReturn("test-session-id");
+        shopController = new ShopController(shopService, defaultApi);
     }
 
     @Test

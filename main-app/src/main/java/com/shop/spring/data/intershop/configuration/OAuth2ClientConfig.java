@@ -34,7 +34,7 @@ public class OAuth2ClientConfig {
     public WebClient webClient(ReactiveOAuth2AuthorizedClientManager authorizedClientManager) {
         ServerOAuth2AuthorizedClientExchangeFilterFunction oauth =
                 new ServerOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager);
-        oauth.setDefaultClientRegistrationId("payment-service");
+        oauth.setDefaultOAuth2AuthorizedClient(true);
         
         return WebClient.builder()
                 .filter(oauth)

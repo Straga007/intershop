@@ -6,6 +6,8 @@ import com.shop.spring.data.intershop.model.enums.ActionType;
 import com.shop.spring.data.intershop.model.enums.SortType;
 import com.shop.spring.data.intershop.service.ShopService;
 import com.shop.spring.data.intershop.view.dto.ItemDto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -24,10 +26,14 @@ import java.util.List;
 
 @Controller
 public class ShopController {
-    private final ShopService shopService;
+    private static final Logger log = LoggerFactory.getLogger(ShopController.class);
 
-    public ShopController(ShopService shopService) {
+    private final ShopService shopService;
+    private final DefaultApi defaultApi;
+
+    public ShopController(ShopService shopService, DefaultApi defaultApi) {
         this.shopService = shopService;
+        this.defaultApi = defaultApi;
     }
 
     // get sessionId or userId
@@ -203,6 +209,7 @@ public class ShopController {
     public Mono<ResponseEntity<Double>> getBalance() {
         return shopService.checkBalance()
                 .map(ResponseEntity::ok)
+                .doOnError(error -> log.error("Ошибка баланса в контроллере: ", error))
                 .onErrorReturn(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
     }
 }

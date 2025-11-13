@@ -25,6 +25,12 @@ spring:
             client-secret: myclientsecret
             authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/login/oauth2/code/keycloak"
+          payment-service:
+            provider: keycloak
+            client-id: paymentservice
+            client-secret: paymentserviceclientsecret
+            authorization-grant-type: client_credentials
+            scope: openid
         provider:
           keycloak:
             issuer-uri: http://localhost:8082/realms/myrealm

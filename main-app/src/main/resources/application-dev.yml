@@ -1,0 +1,22 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  security:
+    oauth2:
+      client:
+        registration:
+          payment-service:
+            provider: spring
+            client-id: paymentservice
+            client-secret: paymentserviceclientsecret
+            authorization-grant-type: client_credentials
+            scope: 
+        provider:
+          spring:
+            token-uri: http://localhost:8081/oauth2/token
+
+payment:
+  service:
+    url: http://localhost:8081
