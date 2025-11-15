@@ -50,11 +50,11 @@
                     <tr th:each="item : ${items}">
                         <td th:text="${item.title}">Название товара</td>
                         <td th:text="${item.price}">Цена</td>
-                        <td th:text="${item.quantity}">Количество</td>
-                        <td th:text="${item.price * item.quantity}">Стоимость</td>
+                        <td th:text="${item.count}">Количество</td>
+                        <td th:text="${item.price * item.count}">Стоимость</td>
                         <td>
                             <form th:action="@{/cart/items/{id}(id=${item.id})}" method="post" style="display: inline;">
-                                <input type="hidden" name="action" value="REMOVE">
+                                <input type="hidden" name="action" value="DELETE">
                                 <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
                             </form>
                         </td>

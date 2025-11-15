@@ -1,32 +1,30 @@
 package com.shop.spring.data.intershop.controller;
 
-import com.shop.main.client.api.DefaultApi;
-import com.shop.spring.data.intershop.model.Paging;
+import com.shop.spring.data.intershop.model.Item;
+import com.shop.spring.data.intershop.model.Order;
+import com.shop.spring.data.intershop.model.OrderItem;
 import com.shop.spring.data.intershop.model.enums.ActionType;
 import com.shop.spring.data.intershop.model.enums.SortType;
 import com.shop.spring.data.intershop.service.ShopService;
 import com.shop.spring.data.intershop.view.dto.ItemDto;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebSession;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.net.URI;
 import java.util.List;
 
+@Slf4j
 @Controller
 public class ShopController {
-    private static final Logger log = LoggerFactory.getLogger(ShopController.class);
 
     private final ShopService shopService;
     private final DefaultApi defaultApi;
@@ -204,6 +202,36 @@ public class ShopController {
                 })
                 .thenReturn("order");
     }
+
+    @GetMapping("/test/orders")
+    public Mono<ResponseEntity<List<Order>>> getTestOrders() {
+        return shopService.getOrders("test-session")
+                .map(orders -> ResponseEntity.ok((List<Order>) orders));
+    }
+
+    @GetMapping("/test/orders/{orderId}/items")
+    public ResponseEntity<Flux<OrderItem>> getTestOrderItems(@PathVariable String orderId) {
+        return ResponseEntity.ok(shopService.getOrderItems(orderId));
+    }
+
+    @GetMapping("/test/cart/items")
+    public Mono<ResponseEntity<List<ItemDto>>> getTestCartItems() {
+        return shopService.getCartItems("test-session")
+                .map(ResponseEntity::ok);
+    }
+
+    @PostMapping("/test/cart/items/{id}")
+    public Mono<ResponseEntity<Void>> updateTestCartItemQuantity(
+            @PathVariable String id,
+            @RequestParam String action) {
+        
+        ActionType actionType = ActionType.valueOf(action.toUpperCase());
+        return shopService.updateCartItemQuantity("test-session", id, actionType)
+                .then(Mono.fromCallable(() -> {
+                    System.out.println("Обновлено количество товара в корзине: itemId=" + id + ", action=" + action);
+                    return ResponseEntity.ok().build();
+                }));
+    }
     
     @GetMapping("/api/balance")
     public Mono<ResponseEntity<Double>> getBalance() {
@@ -211,5 +239,17 @@ public class ShopController {
                 .map(ResponseEntity::ok)
                 .doOnError(error -> log.error("Ошибка баланса в контроллере: ", error))
                 .onErrorReturn(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
+    }
+
+    @PostMapping("/test/buy")
+    public Mono<ResponseEntity<String>> testBuy() {
+        return shopService.buy("test-session")
+                .map(orderId -> ResponseEntity.ok("Order created with ID: " + orderId))
+                .switchIfEmpty(Mono.just(ResponseEntity.badRequest().body("Cart is empty")))
+                .doOnError(error -> {
+                    log.error("Ошибка при оформлении заказа: ", error);
+                    ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error creating order: " + error.getMessage());
+                })
+                .onErrorReturn(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal server error"));
     }
 }

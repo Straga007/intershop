@@ -5,12 +5,15 @@ import com.shop.main.client.model.BalanceResponse;
 import com.shop.spring.data.intershop.model.CartItem;
 import com.shop.spring.data.intershop.model.Item;
 import com.shop.spring.data.intershop.model.Order;
+import com.shop.spring.data.intershop.model.OrderItem;
 import com.shop.spring.data.intershop.model.enums.ActionType;
 import com.shop.spring.data.intershop.model.enums.SortType;
 import com.shop.spring.data.intershop.repository.ItemRepository;
+import com.shop.spring.data.intershop.repository.OrderItemRepository;
 import com.shop.spring.data.intershop.repository.OrderRepository;
 import com.shop.spring.data.intershop.view.dto.ItemDto;
 import com.shop.spring.data.intershop.view.mapper.ShopMapper;
+import java.util.Arrays;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -37,10 +40,10 @@ public class ShopService {
     private final ItemRepository itemRepository;
     private final OrderRepository orderRepository;
     private final ShopMapper shopMapper;
+    private final CartService cartService;
     private final DefaultApi paymentsApi;
+    private final OrderItemRepository orderItemRepository;
     private final R2dbcEntityTemplate template;
-
-    private final Map<String, List<CartItem>> userCarts = new ConcurrentHashMap<>();
 
     public Mono<List<ItemDto>> getMainItems(String search, SortType sort, int pageSize, int pageNumber) {
         Pageable pageable = switch (sort) {
@@ -68,89 +71,90 @@ public class ShopService {
     }
 
     public Mono<List<ItemDto>> getCartItems(String sessionId) {
-        return Mono.fromCallable(() -> {
-            List<CartItem> cartItems = userCarts.computeIfAbsent(sessionId, k -> new ArrayList<>());
-            return cartItems.stream()
-                    .map(cartItem -> {
-                        ItemDto itemDto = shopMapper.toItemDto(cartItem.getItem());
-                        itemDto.setQuantity(cartItem.getQuantity());
-                        return itemDto;
-                    })
-                    .collect(Collectors.toList());
-        });
+        return cartService.getCartItems(sessionId);
     }
 
     public Mono<Double> getCartTotal(String sessionId) {
-        return Mono.fromCallable(() -> {
-            List<CartItem> cartItems = userCarts.computeIfAbsent(sessionId, k -> new ArrayList<>());
-            return cartItems.stream()
-                    .mapToDouble(cartItem -> cartItem.getItem().getPrice() * cartItem.getQuantity())
-                    .sum();
-        });
+        return cartService.getCartTotal(sessionId);
     }
 
     public Mono<Boolean> isCartEmpty(String sessionId) {
-        return Mono.fromCallable(() -> {
-            List<CartItem> cartItems = userCarts.computeIfAbsent(sessionId, k -> new ArrayList<>());
-            return cartItems.isEmpty();
-        });
+        return cartService.isCartEmpty(sessionId);
     }
 
     public Mono<String> updateMainItemQuantity(String sessionId, String id, ActionType action) {
         return itemRepository.findById(Long.valueOf(id))
-                .map(item -> {
-                    List<CartItem> cartItems = userCarts.computeIfAbsent(sessionId, k -> new ArrayList<>());
-                    Optional<CartItem> existingItem = cartItems.stream()
-                            .filter(cartItem -> cartItem.getItem().getId().equals(item.getId()))
-                            .findFirst();
-
-                    if (existingItem.isPresent()) {
-                        CartItem cartItem = existingItem.get();
-                        switch (action) {
-                            case PLUS:
-                                cartItem.setQuantity(cartItem.getQuantity() + 1);
-                                break;
-                            case MINUS:
-                                if (cartItem.getQuantity() > 1) {
-                                    cartItem.setQuantity(cartItem.getQuantity() - 1);
-                                } else {
-                                    cartItems.remove(cartItem);
-                                }
-                                break;
-                            case DELETE:
-                                cartItems.remove(cartItem);
-                                break;
-                        }
-                    } else if (action == ActionType.PLUS) {
-                        cartItems.add(new CartItem(item, 1));
-                    }
-
-                    return "redirect:/main/items";
+                .flatMap(item -> {
+                    return cartService.updateCartItemQuantity(sessionId, id, action)
+                            .thenReturn("redirect:/main/items");
                 });
     }
 
-    public Mono<String> updateCartItemQuantity(String sessionId, String id, ActionType action) {
-        // В реальной реализации sessionId будет заменен на userId
-        return Mono.empty();
+    public Mono<Void> updateCartItemQuantity(String sessionId, String itemId, ActionType action) {
+        return cartService.updateCartItemQuantity(sessionId, itemId, action);
     }
 
     public Mono<String> updateItemQuantity(String sessionId, String id, ActionType action) {
-        // В реальной реализации sessionId будет заменен на userId
-        return Mono.empty();
+        return cartService.updateCartItemQuantity(sessionId, id, action)
+                .thenReturn("redirect:/items/" + id);
     }
 
     public Mono<String> buy(String sessionId) {
-        // В реальной реализации sessionId будет заменен на userId
-        return Mono.empty();
+        log.info("Начинаем оформление заказа для сессии: {}", sessionId);
+        return cartService.getCartItems(sessionId)
+                .doOnNext(items -> log.info("Получены товары из корзины: {}", items))
+                .flatMap(items -> {
+                    if (items.isEmpty()) {
+                        log.info("Корзина пуста, заказ не будет создан");
+                        return Mono.empty();
+                    }
+
+                    // Создаем заказ
+                    Order order = new Order();
+                    order.setOrderDate(LocalDateTime.now());
+                    order.setUserId(sessionId); // Сохраняем ID пользователя
+                    log.info("Создан заказ: {}", order);
+
+                    // Сохраняем заказ
+                    return orderRepository.save(order)
+                            .doOnNext(savedOrder -> log.info("Заказ сохранен в БД: {}", savedOrder))
+                            .flatMap(savedOrder -> {
+                                // Создаем элементы заказа
+                                List<OrderItem> orderItems = items.stream()
+                                        .map(itemDto -> {
+                                            OrderItem orderItem = new OrderItem();
+                                            orderItem.setItemId(Long.valueOf(itemDto.getId()));
+                                            orderItem.setOrderId(savedOrder.getId());
+                                            orderItem.setQuantity(itemDto.getCount());
+                                            log.info("Создан элемент заказа: {}", orderItem);
+                                            return orderItem;
+                                        })
+                                        .collect(Collectors.toList());
+
+                                // Сохраняем элементы заказа
+                                return Flux.fromIterable(orderItems)
+                                        .flatMap(orderItemRepository::save)
+                                        .doOnNext(savedOrderItem -> log.info("Элемент заказа сохранен: {}", savedOrderItem))
+                                        .then(cartService.clearCart(sessionId))
+                                        .doOnSuccess(v -> log.info("Корзина очищена"))
+                                        .thenReturn(savedOrder.getId());
+                            });
+                })
+                .doOnError(error -> log.error("Ошибка при оформлении заказа: ", error));
     }
 
     public Mono<List<Order>> getOrders(String sessionId) {
-        // В реальной реализации sessionId будет заменен на userId
-        return Mono.just(List.of());
+        return orderRepository.findAll()
+                .filter(order -> sessionId.equals(order.getUserId()))
+                .collectList();
     }
 
     public Mono<Order> getOrder(String id) {
         return orderRepository.findById(id);
+    }
+
+    public Flux<OrderItem> getOrderItems(String orderId) {
+        return orderItemRepository.findByOrderId(orderId);
     }
 
     public Mono<Double> checkBalance() {

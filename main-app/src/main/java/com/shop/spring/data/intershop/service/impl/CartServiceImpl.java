@@ -7,12 +7,14 @@ import com.shop.spring.data.intershop.service.CartService;
 import com.shop.spring.data.intershop.view.dto.ItemDto;
 import com.shop.spring.data.intershop.view.mapper.ShopMapper;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 @Service
 public class CartServiceImpl implements CartService {
@@ -36,45 +38,51 @@ public class CartServiceImpl implements CartService {
     public Mono<List<ItemDto>> getCartItems(String sessionId) {
         Map<String, Integer> cart = getCart(sessionId);
         
-        List<Mono<ItemDto>> itemMonos = new ArrayList<>();
+        System.out.println("Получение содержимого корзины для сессии: " + sessionId);
+        System.out.println("Содержимое корзины: " + cart);
         
-        for (Map.Entry<String, Integer> entry : cart.entrySet()) {
-            String itemId = entry.getKey();
-            int quantity = entry.getValue();
-            
-            Mono<ItemDto> itemDtoMono = itemRepository.findById(Long.parseLong(itemId))
-                    .map(item -> {
-                        Item cartItem = new Item();
-                        cartItem.setId(item.getId());
-                        cartItem.setTitle(item.getTitle());
-                        cartItem.setDescription(item.getDescription());
-                        cartItem.setImage(item.getImage());
-                        cartItem.setPrice(item.getPrice());
-                        cartItem.setCount(quantity);
-                        return cartItem;
-                    })
-                    .map(shopMapper::toItemDto);
-            
-            itemMonos.add(itemDtoMono);
+        if (cart.isEmpty()) {
+            System.out.println("Корзина пуста");
+            return Mono.just(new ArrayList<>());
         }
         
-        return Mono.zip(itemMonos, objects -> {
-                    List<ItemDto> result = new ArrayList<>();
-                    for (Object obj : objects) {
-                        result.add((ItemDto) obj);
-                    }
-                    return result;
+        return Flux.fromStream(cart.entrySet().stream())
+                .flatMap(entry -> {
+                    String itemId = entry.getKey();
+                    int quantity = entry.getValue();
+                    
+                    System.out.println("Обработка товара: ID=" + itemId + ", количество=" + quantity);
+                    
+                    return itemRepository.findById(Long.parseLong(itemId))
+                            .map(item -> {
+                                Item cartItem = new Item();
+                                cartItem.setId(item.getId());
+                                cartItem.setTitle(item.getTitle());
+                                cartItem.setDescription(item.getDescription());
+                                cartItem.setImage(item.getImage());
+                                cartItem.setPrice(item.getPrice());
+                                cartItem.setCount(quantity);
+                                return cartItem;
+                            })
+                            .map(shopMapper::toItemDto)
+                            .switchIfEmpty(Mono.just(new ItemDto())); // Обработка отсутствующих товаров
                 })
-                .onErrorReturn(new ArrayList<>())
-                .defaultIfEmpty(new ArrayList<>());
+                .filter(itemDto -> itemDto.getId() != null) // Исключаем несуществующие товары
+                .collectList()
+                .onErrorReturn(new ArrayList<>());
     }
 
     @Override
     public Mono<Void> updateCartItemQuantity(String sessionId, String itemId, ActionType actionType) {
         Map<String, Integer> cart = getCart(sessionId);
         
+        System.out.println("Перед обновлением корзины: " + cart);
+        System.out.println("Session ID: " + sessionId);
+        System.out.println("Item ID: " + itemId);
+        System.out.println("Action type: " + actionType);
+        
         return itemRepository.findById(Long.valueOf(itemId))
-                .flatMap(item -> {
+                .doOnNext(item -> {
                     int currentQuantity = cart.getOrDefault(itemId, 0);
                     int newQuantity;
                     
@@ -91,12 +99,17 @@ public class CartServiceImpl implements CartService {
                                 cart.put(itemId, newQuantity);
                             }
                             break;
+                        case DELETE:
+                            cart.remove(itemId);
+                            break;
                         default:
-                            return Mono.empty();
+                            // Ничего не делаем для неизвестных действий
+                            break;
                     }
                     
-                    return Mono.empty();
-                });
+                    System.out.println("После обновления корзины: " + cart);
+                })
+                .then();
     }
 
     @Override

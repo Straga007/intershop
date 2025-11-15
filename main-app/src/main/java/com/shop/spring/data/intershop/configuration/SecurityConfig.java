@@ -41,7 +41,7 @@ public class SecurityConfig {
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         return http
                 .authorizeExchange(exchanges -> exchanges
-                        .pathMatchers("/", "/main/items", "/items/**", "/api/balance", "/login").permitAll()
+                        .pathMatchers("/", "/main/items", "/items/**", "/api/balance", "/login", "/test/**").permitAll()
                         .anyExchange().authenticated()
                 )
                 .formLogin(form -> form
