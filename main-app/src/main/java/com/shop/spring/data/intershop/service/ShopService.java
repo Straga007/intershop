@@ -15,6 +15,7 @@ import com.shop.spring.data.intershop.view.dto.ItemDto;
 import com.shop.spring.data.intershop.view.dto.OrderDto;
 import com.shop.spring.data.intershop.view.mapper.ShopMapper;
 import java.util.Arrays;
+import java.util.Comparator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -47,12 +48,6 @@ public class ShopService {
     private final R2dbcEntityTemplate template;
 
     public Mono<List<ItemDto>> getMainItems(String search, SortType sort, int pageSize, int pageNumber) {
-        Pageable pageable = switch (sort) {
-            case PRICE -> PageRequest.of(pageNumber - 1, pageSize, Sort.by("price").descending());
-            case ALPHA -> PageRequest.of(pageNumber - 1, pageSize, Sort.by("title").ascending());
-            default -> PageRequest.of(pageNumber - 1, pageSize);
-        };
-
         Flux<Item> items;
         if (search.isEmpty()) {
             items = itemRepository.findAllItems();
@@ -60,9 +55,34 @@ public class ShopService {
             items = itemRepository.findByTitleOrDescriptionContaining(search);
         }
 
-        return items.map(shopMapper::toItemDto)
-                .skip((long) (pageNumber - 1) * pageSize)
+        // Применяем сортировку
+        switch (sort) {
+            case ALPHA:
+                items = items.sort(Comparator.comparing(Item::getTitle));
+                break;
+            case NAME_ASC:
+                items = items.sort(Comparator.comparing(Item::getTitle));
+                break;
+            case NAME_DESC:
+                items = items.sort(Comparator.comparing(Item::getTitle).reversed());
+                break;
+            case PRICE:
+                items = items.sort(Comparator.comparing(Item::getPrice));
+                break;
+            case PRICE_ASC:
+                items = items.sort(Comparator.comparing(Item::getPrice));
+                break;
+            case PRICE_DESC:
+                items = items.sort(Comparator.comparing(Item::getPrice).reversed());
+                break;
+            default:
+                // Нет сортировки
+                break;
+        }
+
+        return items.skip((long) (pageNumber - 1) * pageSize)
                 .take(pageSize)
+                .map(shopMapper::toItemDto)
                 .collectList();
     }
 
@@ -144,9 +164,53 @@ public class ShopService {
                 .doOnError(error -> log.error("Ошибка при оформлении заказа: ", error));
     }
 
-    public Mono<List<Order>> getOrders(String sessionId) {
+    public Mono<List<OrderDto>> getOrders(String sessionId) {
         return orderRepository.findAll()
                 .filter(order -> sessionId.equals(order.getUserId()))
+                .flatMap(order -> 
+                    orderItemRepository.findByOrderId(order.getId())
+                        .collectList()
+                        .flatMap(orderItems -> {
+                            if (orderItems.isEmpty()) {
+                                OrderDto orderDto = new OrderDto();
+                                orderDto.setId(order.getId());
+                                orderDto.setItems(new ArrayList<>());
+                                return Mono.just(orderDto);
+                            }
+                            
+                            // Загружаем товары для каждого элемента заказа
+                            List<Mono<Item>> itemMonos = orderItems.stream()
+                                    .map(orderItem -> itemRepository.findById(orderItem.getItemId()))
+                                    .collect(Collectors.toList());
+                            
+                            return Mono.zip(itemMonos, itemsArray -> {
+                                List<Item> items = new ArrayList<>();
+                                for (Object item : itemsArray) {
+                                    if (item instanceof Item) {
+                                        items.add((Item) item);
+                                    }
+                                }
+                                return items;
+                            }).map(items -> {
+                                // Создаем OrderDto с элементами
+                                List<ItemDto> itemDtos = new ArrayList<>();
+                                
+                                for (int i = 0; i < items.size(); i++) {
+                                    Item item = items.get(i);
+                                    OrderItem orderItem = orderItems.get(i);
+                                    
+                                    ItemDto itemDto = shopMapper.toItemDto(item);
+                                    itemDto.setCount(orderItem.getQuantity());
+                                    itemDtos.add(itemDto);
+                                }
+                                
+                                OrderDto orderDto = new OrderDto();
+                                orderDto.setId(order.getId());
+                                orderDto.setItems(itemDtos);
+                                return orderDto;
+                            });
+                        })
+                )
                 .collectList();
     }
 

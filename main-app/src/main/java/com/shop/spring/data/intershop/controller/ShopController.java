@@ -1,14 +1,13 @@
 package com.shop.spring.data.intershop.controller;
 
 import com.shop.main.client.api.DefaultApi;
-import com.shop.spring.data.intershop.model.Item;
-import com.shop.spring.data.intershop.model.Order;
 import com.shop.spring.data.intershop.model.OrderItem;
 import com.shop.spring.data.intershop.model.Paging;
 import com.shop.spring.data.intershop.model.enums.ActionType;
 import com.shop.spring.data.intershop.model.enums.SortType;
 import com.shop.spring.data.intershop.service.ShopService;
 import com.shop.spring.data.intershop.view.dto.ItemDto;
+import com.shop.spring.data.intershop.view.dto.OrderDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -206,9 +205,9 @@ public class ShopController {
     }
 
     @GetMapping("/test/orders")
-    public Mono<ResponseEntity<List<Order>>> getTestOrders() {
+    public Mono<ResponseEntity<List<OrderDto>>> getTestOrders() {
         return shopService.getOrders("test-session")
-                .map(orders -> ResponseEntity.ok((List<Order>) orders));
+                .map(orders -> ResponseEntity.ok(orders));
     }
 
     @GetMapping("/test/orders/{orderId}/items")
