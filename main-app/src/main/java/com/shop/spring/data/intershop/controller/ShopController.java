@@ -1,8 +1,10 @@
 package com.shop.spring.data.intershop.controller;
 
+import com.shop.main.client.api.DefaultApi;
 import com.shop.spring.data.intershop.model.Item;
 import com.shop.spring.data.intershop.model.Order;
 import com.shop.spring.data.intershop.model.OrderItem;
+import com.shop.spring.data.intershop.model.Paging;
 import com.shop.spring.data.intershop.model.enums.ActionType;
 import com.shop.spring.data.intershop.model.enums.SortType;
 import com.shop.spring.data.intershop.service.ShopService;
@@ -196,8 +198,8 @@ public class ShopController {
             Model model) {
 
         return shopService.getOrder(id)
-                .doOnNext(order -> {
-                    model.addAttribute("order", order);
+                .doOnNext(orderDto -> {
+                    model.addAttribute("order", orderDto);
                     model.addAttribute("newOrder", newOrder);
                 })
                 .thenReturn("order");
