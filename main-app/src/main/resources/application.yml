@@ -21,14 +21,14 @@ spring:
       client:
         registration:
           keycloak:
-            client-id: myclient
-            client-secret: myclientsecret
+            client-id: ${KEYCLOAK_CLIENT_ID:myclient}
+            client-secret: ${KEYCLOAK_CLIENT_SECRET:myclientsecret}
             authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/login/oauth2/code/keycloak"
           payment-service:
             provider: keycloak
-            client-id: paymentservice
-            client-secret: paymentserviceclientsecret
+            client-id: ${PAYMENT_SERVICE_CLIENT_ID:paymentservice}
+            client-secret: ${PAYMENT_SERVICE_CLIENT_SECRET:paymentserviceclientsecret}
             authorization-grant-type: client_credentials
             scope: openid
         provider:
