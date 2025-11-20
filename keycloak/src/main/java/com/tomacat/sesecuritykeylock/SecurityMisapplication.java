@@ -4,10 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class SesecurityKeylockApplication {
+public class SecurityMisapplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(SesecurityKeylockApplication.class, args);
+		SpringApplication.run(SecurityMisapplication.class, args);
 	}
 
 }

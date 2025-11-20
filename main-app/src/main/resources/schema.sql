@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS items (
 
 CREATE TABLE IF NOT EXISTS orders (
     id VARCHAR(36) PRIMARY KEY,
-    order_date TIMESTAMP NOT NULL
+    order_date TIMESTAMP NOT NULL,
+    user_id VARCHAR(255)
 );
 
 CREATE TABLE IF NOT EXISTS order_items (

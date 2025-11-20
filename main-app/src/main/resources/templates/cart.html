@@ -1,72 +1,86 @@
 <!DOCTYPE html>
-<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>Корзина</title>
-    <link rel="stylesheet" th:href="@{/css/main.css}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-<div class="container">
-    <h1>Корзина</h1>
-    <div th:if="${empty}">
-        <p>Корзина пуста</p>
-        <a th:href="@{/main/items}">Продолжить покупки</a>
-    </div>
-    <div th:unless="${empty}">
-        <div th:each="item : ${items}" class="item">
-            <img width="300" height="300" th:src="@{'/' + ${item.getImage()}}">
-            <h3 th:text="${item.getTitle()}">Название товара</h3>
-            <p th:text="${item.getDescription()}">Описание товара</p>
-            <p>Цена: <span th:text="${item.getPrice()}">0</span> руб.</p>
-            <p>Количество: <span th:text="${item.getCount()}">0</span></p>
-            <p>Сумма: <span th:text="${item.getPrice() * item.getCount()}">0</span> руб.</p>
-            <form th:action="@{'/cart/items/' + ${item.getId()}}" method="post">
-                <input type="hidden" name="action" value="MINUS">
-                <button type="submit">-</button>
-            </form>
-            <form th:action="@{'/cart/items/' + ${item.getId()}}" method="post">
-                <input type="hidden" name="action" value="PLUS">
-                <button type="submit">+</button>
-            </form>
-            <form th:action="@{'/cart/items/' + ${item.getId()}}" method="post">
-                <input type="hidden" name="action" value="DELETE">
-                <button type="submit">Удалить</button>
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">Интернет-магазин</a>
+        <div class="navbar-nav ms-auto">
+            <a class="nav-link" href="/cart/items" sec:authorize="isAuthenticated()">Корзина</a>
+            <a class="nav-link" href="/orders" sec:authorize="isAuthenticated()">Заказы</a>
+            <a class="nav-link" href="/login" sec:authorize="!isAuthenticated()">Войти</a>
+            <span class="nav-link" sec:authorize="isAuthenticated()" sec:authentication="name">Имя пользователя</span>
+            <form th:action="@{/logout}" method="post" sec:authorize="isAuthenticated()">
+                <button type="submit" class="btn btn-link nav-link">Выйти</button>
             </form>
         </div>
-        <p>Общая сумма: <span th:text="${total}">0</span> руб.</p>
-        <p>Ваш баланс: <span th:text="${balance}">0</span> руб.</p>
-        <form th:action="@{/buy}" method="post">
-            <button id="buy-button" type="submit" 
-                th:disabled="${balance < total}" 
-                th:text="${balance >= total ? 'Оформить заказ' : 'Недостаточно средств'}">
-                Оформить заказ
-            </button>
-        </form>
-        <a th:href="@{/main/items}">Продолжить покупки</a>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <h1>Корзина</h1>
+    
+    <div sec:authorize="!isAuthenticated()">
+        <div class="alert alert-warning">
+            Для просмотра корзины необходимо <a href="/login">войти в систему</a>.
+        </div>
     </div>
     
-    <script>
-        // Добавляем JavaScript для обновления состояния кнопки
-        document.addEventListener('DOMContentLoaded', function() {
-            const totalElement = document.querySelector('p:contains("Общая сумма:") span');
-            const balanceElement = document.querySelector('p:contains("Ваш баланс:") span');
-            const buyButton = document.getElementById('buy-button');
+    <div sec:authorize="isAuthenticated()">
+        <div th:if="${#lists.isEmpty(items)}" class="alert alert-info">
+            Ваша корзина пуста.
+        </div>
+        
+        <div th:unless="${#lists.isEmpty(items)}">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Товар</th>
+                        <th>Цена</th>
+                        <th>Количество</th>
+                        <th>Стоимость</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="item : ${items}">
+                        <td th:text="${item.title}">Название товара</td>
+                        <td th:text="${item.price}">Цена</td>
+                        <td th:text="${item.count}">Количество</td>
+                        <td th:text="${item.price * item.count}">Стоимость</td>
+                        <td>
+                            <form th:action="@{/cart/items/{id}(id=${item.id})}" method="post" style="display: inline;">
+                                <input type="hidden" name="action" value="DELETE">
+                                <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
             
-            if (totalElement && balanceElement && buyButton) {
-                const total = parseFloat(totalElement.textContent);
-                const balance = parseFloat(balanceElement.textContent);
-                
-                if (balance < total) {
-                    buyButton.disabled = true;
-                    buyButton.textContent = 'Недостаточно средств';
-                } else {
-                    buyButton.disabled = false;
-                    buyButton.textContent = 'Оформить заказ';
-                }
-            }
-        });
-    </script>
+            <div class="row">
+                <div class="col-md-6">
+                    <h4>Итого: <span th:text="${total}">0</span> руб.</h4>
+                </div>
+                <div class="col-md-6 text-end">
+                    <form th:action="@{/buy}" method="post">
+                        <button type="submit" class="btn btn-success" 
+                                th:if="${balance != null and total <= balance}">
+                            Оформить заказ
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div th:if="${balance != null and total > balance}" class="alert alert-warning mt-3">
+                Недостаточно средств на балансе. Ваш баланс: <span th:text="${balance}">0</span> руб.
+            </div>
+        </div>
+    </div>
 </div>
 </body>
 </html>

@@ -54,7 +54,7 @@ public class IntegrationTestConfiguration {
 
     @Bean
     public ShopService shopService() {
-        return new ShopService(itemService(), cartService(), orderService());
+        return new ShopService(itemRepository(), orderRepository(), shopMapper(), paymentsApi(), null);
     }
 
     @Bean

@@ -17,6 +17,8 @@ public class Order implements Persistable<String> {
     private String id;
 
     private LocalDateTime orderDate;
+    
+    private String userId;
 
     public Order() {
         this.id = UUID.randomUUID().toString();

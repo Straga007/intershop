@@ -7,11 +7,13 @@ import com.shop.payment.model.PaymentRequest;
 import com.shop.payment.model.PaymentResponse;
 import com.shop.payment.service.PaymentService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 @RestController
+@RequestMapping("/api/v1")
 public class PaymentController implements BalanceApi, PaymentApi {
     
     private final PaymentService paymentService;

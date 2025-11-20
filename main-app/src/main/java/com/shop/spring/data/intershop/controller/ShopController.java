@@ -1,36 +1,45 @@
 package com.shop.spring.data.intershop.controller;
 
 import com.shop.main.client.api.DefaultApi;
+import com.shop.spring.data.intershop.model.OrderItem;
 import com.shop.spring.data.intershop.model.Paging;
 import com.shop.spring.data.intershop.model.enums.ActionType;
 import com.shop.spring.data.intershop.model.enums.SortType;
 import com.shop.spring.data.intershop.service.ShopService;
 import com.shop.spring.data.intershop.view.dto.ItemDto;
+import com.shop.spring.data.intershop.view.dto.OrderDto;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebSession;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.net.URI;
 import java.util.List;
 
+@Slf4j
 @Controller
 public class ShopController {
-    private final ShopService shopService;
 
-    public ShopController(ShopService shopService, DefaultApi paymentsApi) {
+    private final ShopService shopService;
+    private final DefaultApi defaultApi;
+
+    public ShopController(ShopService shopService, DefaultApi defaultApi) {
         this.shopService = shopService;
+        this.defaultApi = defaultApi;
     }
 
-    // get sessionId
-    private Mono<String> getSessionId(ServerWebExchange exchange) {
+    // get sessionId or userId
+    private Mono<String> getUserId(ServerWebExchange exchange, Authentication authentication) {
+        if (authentication != null && authentication.isAuthenticated()) {
+            return Mono.just(authentication.getName());
+        }
         return exchange.getSession().map(WebSession::getId);
     }
 
@@ -57,7 +66,7 @@ public class ShopController {
         return shopService.getMainItems(search, sortType, pageSize, pageNumber)
                 .doOnNext(items -> {
                     model.addAttribute("items", items);
-                    boolean hasNext = !items.isEmpty() && items.getFirst().size() == pageSize;
+                    boolean hasNext = items.size() == pageSize;
                     Paging paging = new Paging(pageNumber, pageSize, hasNext, pageNumber > 1);
                     model.addAttribute("paging", paging);
                 })
@@ -67,7 +76,8 @@ public class ShopController {
     @PostMapping("/main/items/{id}")
     public Mono<Void> updateMainItemQuantity(
             @PathVariable String id,
-            ServerWebExchange exchange) {
+            ServerWebExchange exchange,
+            Authentication authentication) {
 
         return exchange.getFormData()
                 .flatMap(formData -> {
@@ -75,8 +85,8 @@ public class ShopController {
                     assert action != null;
                     ActionType actionType = ActionType.valueOf(action.toUpperCase());
 
-                    return getSessionId(exchange)
-                            .flatMap(sessionId -> shopService.updateMainItemQuantity(sessionId, id, actionType))
+                    return getUserId(exchange, authentication)
+                            .flatMap(userId -> shopService.updateMainItemQuantity(userId, id, actionType))
                             .then(Mono.fromRunnable(() -> {
                                 exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.FOUND);
                                 exchange.getResponse().getHeaders().setLocation(URI.create("/main/items"));
@@ -85,12 +95,12 @@ public class ShopController {
     }
 
     @GetMapping("/cart/items")
-    public Mono<String> getCartItems(Model model, ServerWebExchange exchange) {
-        return getSessionId(exchange)
-                .flatMap(sessionId -> {
-                    Mono<List<ItemDto>> itemsMono = shopService.getCartItems(sessionId);
-                    Mono<Double> totalMono = shopService.getCartTotal(sessionId);
-                    Mono<Boolean> emptyMono = shopService.isCartEmpty(sessionId);
+    public Mono<String> getCartItems(Model model, ServerWebExchange exchange, Authentication authentication) {
+        return getUserId(exchange, authentication)
+                .flatMap(userId -> {
+                    Mono<List<ItemDto>> itemsMono = shopService.getCartItems(userId);
+                    Mono<Double> totalMono = shopService.getCartTotal(userId);
+                    Mono<Boolean> emptyMono = shopService.isCartEmpty(userId);
                     Mono<Double> balanceMono = shopService.checkBalance()
                             .doOnNext(balance -> System.out.println("Баланс в контроллере: " + balance))
                             .onErrorReturn(0.0);
@@ -109,7 +119,8 @@ public class ShopController {
     @PostMapping("/cart/items/{id}")
     public Mono<Void> updateCartItemQuantity(
             @PathVariable String id,
-            ServerWebExchange exchange) {
+            ServerWebExchange exchange,
+            Authentication authentication) {
 
         return exchange.getFormData()
                 .flatMap(formData -> {
@@ -117,8 +128,8 @@ public class ShopController {
                     assert action != null;
                     ActionType actionType = ActionType.valueOf(action.toUpperCase());
 
-                    return getSessionId(exchange)
-                            .flatMap(sessionId -> shopService.updateCartItemQuantity(sessionId, id, actionType))
+                    return getUserId(exchange, authentication)
+                            .flatMap(userId -> shopService.updateCartItemQuantity(userId, id, actionType))
                             .then(Mono.fromRunnable(() -> {
                                 exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.FOUND);
                                 exchange.getResponse().getHeaders().setLocation(URI.create("/cart/items"));
@@ -136,7 +147,8 @@ public class ShopController {
     @PostMapping("/items/{id}")
     public Mono<Void> updateItemQuantity(
             @PathVariable String id,
-            ServerWebExchange exchange) {
+            ServerWebExchange exchange,
+            Authentication authentication) {
 
         return exchange.getFormData()
                 .flatMap(formData -> {
@@ -144,8 +156,8 @@ public class ShopController {
                     assert action != null;
                     ActionType actionType = ActionType.valueOf(action.toUpperCase());
 
-                    return getSessionId(exchange)
-                            .flatMap(sessionId -> shopService.updateItemQuantity(sessionId, id, actionType))
+                    return getUserId(exchange, authentication)
+                            .flatMap(userId -> shopService.updateItemQuantity(userId, id, actionType))
                             .then(Mono.fromRunnable(() -> {
                                 exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.FOUND);
                                 exchange.getResponse().getHeaders().setLocation(URI.create("/items/" + id));
@@ -154,8 +166,8 @@ public class ShopController {
     }
 
     @PostMapping("/buy")
-    public Mono<Void> buy(ServerWebExchange exchange) {
-        return getSessionId(exchange)
+    public Mono<Void> buy(ServerWebExchange exchange, Authentication authentication) {
+        return getUserId(exchange, authentication)
                 .flatMap(shopService::buy)
                 .flatMap(orderId -> {
                     if (orderId != null) {
@@ -171,8 +183,8 @@ public class ShopController {
     }
 
     @GetMapping("/orders")
-    public Mono<String> getOrders(Model model, ServerWebExchange exchange) {
-        return getSessionId(exchange)
+    public Mono<String> getOrders(Model model, ServerWebExchange exchange, Authentication authentication) {
+        return getUserId(exchange, authentication)
                 .flatMap(shopService::getOrders)
                 .doOnNext(orders -> model.addAttribute("orders", orders))
                 .thenReturn("orders");
@@ -185,23 +197,63 @@ public class ShopController {
             Model model) {
 
         return shopService.getOrder(id)
-                .doOnNext(order -> {
-                    model.addAttribute("order", order);
+                .doOnNext(orderDto -> {
+                    model.addAttribute("order", orderDto);
                     model.addAttribute("newOrder", newOrder);
                 })
                 .thenReturn("order");
+    }
+
+    @GetMapping("/test/orders")
+    public Mono<ResponseEntity<List<OrderDto>>> getTestOrders() {
+        return shopService.getOrders("test-session")
+                .map(orders -> ResponseEntity.ok(orders));
+    }
+
+    @GetMapping("/test/orders/{orderId}/items")
+    public ResponseEntity<Flux<OrderItem>> getTestOrderItems(@PathVariable String orderId) {
+        return ResponseEntity.ok(shopService.getOrderItems(orderId));
+    }
+
+    @GetMapping("/test/cart/items")
+    public Mono<ResponseEntity<List<ItemDto>>> getTestCartItems() {
+        return shopService.getCartItems("test-session")
+                .map(ResponseEntity::ok);
+    }
+
+    @PostMapping("/test/cart/items/{id}")
+    public Mono<ResponseEntity<Void>> updateTestCartItemQuantity(
+            @PathVariable String id,
+            @RequestParam String action) {
+        
+        ActionType actionType = ActionType.valueOf(action.toUpperCase());
+        return shopService.updateCartItemQuantity("test-session", id, actionType)
+                .then(Mono.fromCallable(() -> {
+                    System.out.println("Обновлено количество товара в корзине: itemId=" + id + ", action=" + action);
+                    return ResponseEntity.ok().build();
+                }));
     }
     
     @GetMapping("/api/balance")
     public Mono<ResponseEntity<Double>> getBalance() {
         return shopService.checkBalance()
-                .map(ResponseEntity::ok)
-                .onErrorReturn(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
+                .map(balance -> ResponseEntity.ok().body(balance))
+                .onErrorResume(throwable -> {
+                    log.error("Ошибка при проверке баланса: ", throwable);
+                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body(0.0));
+                });
     }
-    
-    @PostMapping("/admin/cache/clear")
-    public String clearCache() {
-        shopService.clearCache();
-        return "Cache cleared successfully";
+
+    @PostMapping("/test/buy")
+    public Mono<ResponseEntity<String>> testBuy() {
+        return shopService.buy("test-session")
+                .map(orderId -> ResponseEntity.ok("Order created with ID: " + orderId))
+                .switchIfEmpty(Mono.just(ResponseEntity.badRequest().body("Cart is empty")))
+                .doOnError(error -> {
+                    log.error("Ошибка при оформлении заказа: ", error);
+                    ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error creating order: " + error.getMessage());
+                })
+                .onErrorReturn(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal server error"));
     }
 }

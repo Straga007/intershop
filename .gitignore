@@ -18,7 +18,7 @@ bin/
 !**/src/test/**/bin/
 
 ### IntelliJ IDEA ###
-.idea
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -35,3 +35,47 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# Бинарные файлы и артефакты сборки
+*.jar
+*.war
+*.ear
+*.class
+*.exe
+*.dll
+*.so
+
+# Временные файлы
+*.tmp
+*.temp
+*.log
+
+# Файлы среды разработки
+*.swp
+*.swo
+
+# Операционная система
+.DS_Store
+Thumbs.db
+
+# Docker
+.env
+
+# Базы данных
+*.h2.db
+*.mv.db
+*.trace.db
+data/
+
+# Секреты и конфигурации
+.env.*
+!*.env.example
+!*.env.sample
+.envrc
+
+# Логи
+logs/
+
+# Кэш приложений
+.cache/
+tmp/

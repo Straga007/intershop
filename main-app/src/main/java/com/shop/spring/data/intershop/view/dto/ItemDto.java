@@ -12,6 +12,7 @@ public class ItemDto {
     private String image;
     private double price;
     private int count;
+    private Integer quantity;
 
     public ItemDto() {
     }
@@ -47,5 +48,13 @@ public class ItemDto {
     
     public int getCount() {
         return count;
+    }
+    
+    public Integer getQuantity() {
+        return quantity;
+    }
+    
+    public void setQuantity(Integer quantity) {
+        this.quantity = quantity;
     }
 }
