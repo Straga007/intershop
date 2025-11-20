@@ -73,6 +73,7 @@ public class ShopService {
     }
 
     public Mono<Double> checkBalance() {
-        return paymentService.checkBalance();
+        return paymentService.checkBalance()
+                .onErrorReturn(0.0);
     }
 }

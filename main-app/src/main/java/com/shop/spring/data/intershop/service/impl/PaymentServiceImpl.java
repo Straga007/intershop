@@ -20,10 +20,6 @@ public class PaymentServiceImpl implements PaymentService {
         return paymentsApi.getBalance()
                 .map(BalanceResponse::getBalance)
                 .doOnNext(balance -> log.info("Получен баланс: {}", balance))
-                .doOnError(error -> log.error("Ошибка при получении баланса: ", error))
-                .onErrorResume(error -> {
-                    log.error("Не удалось получить баланс, возвращаем значение по умолчанию 0.0: ", error);
-                    return Mono.just(0.0);
-                });
+                .doOnError(error -> log.error("Ошибка при получении баланса: ", error));
     }
 }

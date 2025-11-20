@@ -6,6 +6,8 @@ import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 
+import java.util.List;
+
 @Repository
 public interface ItemRepository extends ReactiveCrudRepository<Item, Long> {
     @Query("SELECT id, title, description, image, price, count FROM items WHERE LOWER(title) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(description) LIKE LOWER(CONCAT('%', :search, '%'))")
@@ -13,4 +15,6 @@ public interface ItemRepository extends ReactiveCrudRepository<Item, Long> {
 
     @Query("SELECT id, title, description, image, price, count FROM items")
     Flux<Item> findAllItems();
+    
+    Flux<Item> findAllById(Iterable<Long> ids);
 }

@@ -237,9 +237,12 @@ public class ShopController {
     @GetMapping("/api/balance")
     public Mono<ResponseEntity<Double>> getBalance() {
         return shopService.checkBalance()
-                .map(ResponseEntity::ok)
-                .doOnError(error -> log.error("Ошибка баланса в контроллере: ", error))
-                .onErrorReturn(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
+                .map(balance -> ResponseEntity.ok().body(balance))
+                .onErrorResume(throwable -> {
+                    log.error("Ошибка при проверке баланса: ", throwable);
+                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body(0.0));
+                });
     }
 
     @PostMapping("/test/buy")

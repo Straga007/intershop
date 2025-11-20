@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class CartServiceImpl implements CartService {
@@ -46,28 +47,24 @@ public class CartServiceImpl implements CartService {
             return Mono.just(new ArrayList<>());
         }
         
-        return Flux.fromStream(cart.entrySet().stream())
-                .flatMap(entry -> {
-                    String itemId = entry.getKey();
-                    int quantity = entry.getValue();
-                    
-                    System.out.println("Обработка товара: ID=" + itemId + ", количество=" + quantity);
-                    
-                    return itemRepository.findById(Long.parseLong(itemId))
-                            .map(item -> {
-                                Item cartItem = new Item();
-                                cartItem.setId(item.getId());
-                                cartItem.setTitle(item.getTitle());
-                                cartItem.setDescription(item.getDescription());
-                                cartItem.setImage(item.getImage());
-                                cartItem.setPrice(item.getPrice());
-                                cartItem.setCount(quantity);
-                                return cartItem;
-                            })
-                            .map(shopMapper::toItemDto)
-                            .switchIfEmpty(Mono.just(new ItemDto())); // Обработка отсутствующих товаров
+        // Получаем все товары пакетно
+        List<Long> itemIds = cart.keySet().stream()
+                .map(Long::valueOf)
+                .collect(Collectors.toList());
+        
+        return itemRepository.findAllById(itemIds)
+                .filter(item -> cart.containsKey(item.getId().toString()))
+                .map(item -> {
+                    Item cartItem = new Item();
+                    cartItem.setId(item.getId());
+                    cartItem.setTitle(item.getTitle());
+                    cartItem.setDescription(item.getDescription());
+                    cartItem.setImage(item.getImage());
+                    cartItem.setPrice(item.getPrice());
+                    cartItem.setCount(cart.get(item.getId().toString()));
+                    return cartItem;
                 })
-                .filter(itemDto -> itemDto.getId() != null) // Исключаем несуществующие товары
+                .map(shopMapper::toItemDto)
                 .collectList()
                 .onErrorReturn(new ArrayList<>());
     }
@@ -116,24 +113,18 @@ public class CartServiceImpl implements CartService {
     public Mono<Double> getCartTotal(String sessionId) {
         Map<String, Integer> cart = getCart(sessionId);
         
-        List<Mono<Double>> prices = new ArrayList<>();
-        for (Map.Entry<String, Integer> entry : cart.entrySet()) {
-            String itemId = entry.getKey();
-            int quantity = entry.getValue();
-            
-            Mono<Double> priceMono = itemRepository.findById(Long.valueOf(itemId))
-                    .map(item -> item.getPrice() * quantity);
-            prices.add(priceMono);
+        if (cart.isEmpty()) {
+            return Mono.just(0.0);
         }
         
-        return Mono.zip(prices, objects -> {
-                    double total = 0.0;
-                    for (Object obj : objects) {
-                        total += (Double) obj;
-                    }
-                    return total;
-                })
-                .onErrorReturn(0.0)
+        // Получаем все товары пакетно
+        List<Long> itemIds = cart.keySet().stream()
+                .map(Long::valueOf)
+                .collect(Collectors.toList());
+        
+        return itemRepository.findAllById(itemIds)
+                .collectMap(Item::getId, item -> item.getPrice() * cart.get(item.getId().toString()))
+                .map(priceMap -> priceMap.values().stream().mapToDouble(Double::doubleValue).sum())
                 .defaultIfEmpty(0.0);
     }
 
